@@ -15,44 +15,9 @@ data Sym = Sym {
 data Value = IntVal Int deriving(Show, Eq)
 
 data TypeExpr = TypeAtom Text
-              | TypeExpr ::-> TypeExpr
-              | TypeExpr ::* TypeExpr
-              | TypeExpr ::+ TypeExpr deriving(Show, Eq)
-
--- typename :: Prism' TypeExpr Text
--- typename = prism' (\name -> TypeAtom name) getter
---   where
---     getter (TypeAtom name) = Just name
---     getter _ = Nothing
-
--- typefrom, typeto, typeleft, typeright :: Prism' TypeExpr TypeExpr
--- typefrom = prism' wrap unwrap
---   where
---     wrap :: TypeExpr -> TypeExpr
---     wrap l = l
---     unwrap :: TypeExpr -> Maybe TypeExpr
---     unwrap (l :-> r) = Just l
---     unwrap _ = Nothing
-
--- typeto = prism' wrap unwrap
---   where
---     wrap = id
---     unwrap (l :-> r) = Just r
---     unwrap _ = Nothing
-
-
--- typeleft = prism' wrap unwrap
---   where
---     wrap = id
---     unwrap (l :* r) = Just l
---     unwrap _ = Nothing
-
-
--- typeright = prism' wrap unwrap
---   where
---     wrap = id
---     unwrap (l :* r) = Just r
---     unwrap _ = Nothing
+              | TypeExpr :-> TypeExpr
+              | TypeExpr :* TypeExpr
+              | TypeExpr :+ TypeExpr deriving(Show, Eq)
 
 data Expr = Constant Value
           | Var Sym
@@ -65,8 +30,7 @@ data Expr = Constant Value
           | IfThenElse Expr Expr Expr
           | Match Expr PatternMatching
           | While Expr Expr
-          | Function PatternMatching
-          | Fun PatternMatching
+          | FunApply Sym [Expr]
           | Let Pattern Expr
           | LetRec Pattern Expr
           deriving(Show, Eq)
@@ -88,14 +52,15 @@ data Pattern = VarPattern {
 }| ListPattern {
      _patType :: (Maybe TypeExpr), 
      _exp :: [Expr]
- }| FuncPattern {
-     _patType :: (Maybe TypeExpr),
-     _sym :: Sym,
-     _args :: [Sym]
- }| OrPattern{
-     _left :: Pattern,
-     _right :: Pattern
-   } deriving (Show, Eq)
+}| FuncPattern {
+    _patType :: (Maybe TypeExpr),
+    _sym :: Sym,
+    _args :: [Sym]
+}| OrPattern{
+    _patType :: (Maybe TypeExpr),
+    _left :: Pattern,
+    _right :: Pattern
+} deriving (Show, Eq)
 
 data Comp = LessThan | LessThanEq | Equal | GreaterThan | GreaterThanEq deriving (Show, Eq)
 data InfixOp = InfixSymbol

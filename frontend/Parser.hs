@@ -71,8 +71,15 @@ integerLiteral :: Parser Int
 integerLiteral = read <$> (try (toList <$> char '-') <> many1 digit <|> many1 digit)
 
 term :: Parser Expr
-term = (try $ Constant . IntVal . read <$> many1 digit) <|> try parenExpr
-
+term = try funApply <|> try parenExpr <|> Var <$> varSym <|> (try $ Constant . IntVal . read <$> many1 digit)
+funApply :: Parser Expr
+funApply = do
+    spaces
+    fname <- varSym
+    spaces
+    args <- sepBy1 (try parenExpr <|> Var <$> varSym <|> (try $ Constant . IntVal . read <$> many1 digit)) spaces
+    return $ FunApply fname args
+        
 mulClassOp, addClassOp :: Parser InfixOp
 mulClassOp = (spaces >> char '*' >> spaces >> return Mul)
              <|> (spaces >> char '/' >> spaces >> return Div)
@@ -109,10 +116,9 @@ patternExpr = try funcPattern <|> try constantPattern <|> try varPattern <|> try
         spaces
         funcName <- varSym
         spaces
-        args <- many1 varSym
+        args <- sepBy1 varSym spaces
         return $ FuncPattern Nothing funcName args
-        
-    orPattern = error "orPattern is not yet!" -- TODO
+    orPattern = error "orPattern is not yet!"
     listPattern = error "listPattern is not yet!"
 
 parenExpr :: Parser Expr
@@ -132,7 +138,7 @@ varSym = do
 varExpr = Var <$> varSym
 
 expr :: Parser Expr
-expr = try letRecExpr <|> try letExpr <|> try parenExpr <|> try mathExpr <|> try varExpr 
+expr = try letRecExpr <|> try letExpr <|> try parenExpr <|> try mathExpr <|> try varExpr
 
 exprParser :: Parser Expr
 exprParser = do
