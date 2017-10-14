@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, PatternSynonyms#-}
 module Types where
 
 import Control.Lens
@@ -8,16 +8,16 @@ import qualified Data.Text as T
 type Name = Text
 
 data Sym = Sym {
-    _symname :: Name
+    _Symname :: Name
 } deriving(Show, Eq)
 
 
 data Value = IntVal Int deriving(Show, Eq)
 
 data TypeExpr = TypeAtom Text
-              | TypeExpr :-> TypeExpr
-              | TypeExpr :* TypeExpr
-              | TypeExpr :+ TypeExpr deriving(Show, Eq)
+              | TypeExpr ::-> TypeExpr
+              | TypeExpr ::* TypeExpr
+              | TypeExpr ::+ TypeExpr deriving(Show, Eq)
 
 data Expr = Constant Value
           | Var Sym
@@ -34,6 +34,27 @@ data Expr = Constant Value
           | Let Pattern Expr
           | LetRec Pattern Expr
           deriving(Show, Eq)
+
+pattern IntC x = Constant (IntVal x)
+pattern V x = Var (Sym x)
+pattern l :*  r = InfixOpExpr l Mul r
+pattern l :+  r = InfixOpExpr l Plus r
+pattern l :-  r = InfixOpExpr l Minus r
+pattern l :/  r = InfixOpExpr l Div r
+pattern l :*. r = InfixOpExpr l MulDot r
+pattern l :+. r = InfixOpExpr l PlusDot r
+pattern l :-. r = InfixOpExpr l MinusDot r
+pattern l :/. r = InfixOpExpr l DivDot r
+pattern l :<  r = InfixOpExpr l (Compare LessThan) r
+pattern l :<= r = InfixOpExpr l (Compare LessThanEq) r
+pattern l :== r = InfixOpExpr l (Compare Equal) r
+pattern l :>  r = InfixOpExpr l (Compare GreaterThan) r
+pattern l :>= r = InfixOpExpr l (Compare GreaterThanEq) r
+pattern l :&& r = InfixOpExpr l BoolAnd r
+pattern l :|| r = InfixOpExpr l BoolOr r
+pattern l :&  r = InfixOpExpr l BinAnd r
+pattern l :|  r = InfixOpExpr l BinOr r
+pattern l :%  r = InfixOpExpr l Mod r
 
 data TypedExpr = TypedExpr{
     _TypedExprtypeExpr :: TypeExpr,
@@ -63,8 +84,7 @@ data Pattern = VarPattern {
 } deriving (Show, Eq)
 
 data Comp = LessThan | LessThanEq | Equal | GreaterThan | GreaterThanEq deriving (Show, Eq)
-data InfixOp = InfixSymbol
-             | Mul | Plus | Minus | Div
+data InfixOp = Mul | Plus | Minus | Div
              | MulDot | PlusDot | MinusDot | DivDot
              | Compare Comp
              | BoolAnd
@@ -76,7 +96,7 @@ data InfixOp = InfixSymbol
 
 data PatternMatching = PatternMatching Pattern Expr deriving(Show, Eq)
 
-makeLenses ''Sym
+makeFields ''Sym
 makeFields ''TypedExpr
 makeLenses ''Pattern
 -- makePrisms ''TypeExpr
