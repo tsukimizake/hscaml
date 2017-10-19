@@ -1,6 +1,7 @@
 {
 module Parser (exprParser) where
 import Types
+import Token
 import Lexer
 import Control.Lens hiding ((:<), (:>))
 }

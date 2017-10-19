@@ -8,11 +8,12 @@
 {-# OPTIONS_GHC -fno-warn-tabs                  #-}
 {-# OPTIONS_GHC -funbox-strict-fields           #-}
 
-module Lexer
+module Lexer (alexScanTokens)
 
 where
 import Prelude 
 import Data.Text hiding (map, take)
+import Token
 }
 
 %wrapper "basic"
@@ -124,86 +125,5 @@ tokText cls s = cls (pack s)
 tokRead :: (Read a) => (a->Token) -> String -> Token
 tokRead cls s = cls (read s)
 
-
-data Token
- = TokenLet
- | TokenIn
- | TokenAnd
- | TokenAs
- | TokenAssert
- | TokenAsr
- | TokenBegin
- | TokenClass
- | TokenClosed
- | TokenConstraint
- | TokenDo
- | TokenDone
- | TokenDownto
- | TokenElse
- | TokenEnd
- | TokenException
- | TokenExternal
- | TokenFalse
- | TokenFor
- | TokenFun
- | TokenFunction
- | TokenFunctor
- | TokenIf
- | TokenInclude
- | TokenInherit
- | TokenLand
- | TokenLazy
- | TokenLor
- | TokenLsl
- | TokenLsr
- | TokenLxor
- | TokenMatch
- | TokenMethod
- | TokenMod
- | TokenModule
- | TokenMutable
- | TokenNew
- | TokenOf
- | TokenOpen
- | TokenOr
- | TokenParser
- | TokenPrivate
- | TokenRec
- | TokenSig
- | TokenStruct
- | TokenThen
- | TokenTo
- | TokenTrue
- | TokenTry
- | TokenType
- | TokenVal
- | TokenVirtual
- | TokenWhen
- | TokenWhile
- | TokenWith
- | TokenInt    Int
- | UpperTokenVar Text
- | DownTokenVar Text
- | TokenPlus
- | TokenMinus
- | TokenMult
- | TokenDiv
- | TokenPlusDot
- | TokenMinusDot
- | TokenMultDot
- | TokenDivDot
- | TokenEq
- | TokenOParen
- | TokenCParen
- | TokenOBracket
- | TokenCBracket 
- | TokenRArrow
- | TokenEOF
- | TokenLT
- | TokenLTEq
- | TokenGT
- | TokenGTEq
- | TokenColon
- deriving (Eq, Show)
 
 }
