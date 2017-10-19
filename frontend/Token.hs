@@ -72,7 +72,7 @@ data Token
  | TokenOParen
  | TokenCParen
  | TokenOBracket
- | TokenCBracket 
+ | TokenCBracket
  | TokenRArrow
  | TokenEOF
  | TokenLT

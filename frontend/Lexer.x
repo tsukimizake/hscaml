@@ -103,7 +103,6 @@ tokens :-
   when     {tok TokenWhen}
   while     {tok TokenWhile}
   with     {tok TokenWith}
-  int     {tokRead TokenInt}
   tokenvar     {tokText UpperTokenVar}
   okenvar     {tokText DownTokenVar}
   plus     {tok TokenPlus}

@@ -3,7 +3,10 @@ module OCamlType where
 import Types
 
 ocamlInt :: TypeExpr
-ocamlInt = TypeAtom "Int"
+ocamlInt = TypeAtom "int"
 
 ocamlChar :: TypeExpr
-ocamlChar = TypeAtom "Char"
+ocamlChar = TypeAtom "char"
+
+ocamlBool :: TypeExpr
+ocamlBool = TypeAtom "bool"

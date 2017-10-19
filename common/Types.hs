@@ -17,7 +17,11 @@ data Value = IntVal Int deriving(Show, Eq)
 data TypeExpr = TypeAtom Text
               | TypeExpr ::-> TypeExpr
               | TypeExpr ::* TypeExpr
-              | TypeExpr ::+ TypeExpr deriving(Show, Eq)
+              | TypeExpr ::+ TypeExpr
+              deriving(Show, Eq)
+
+data DataCnstr = DataCnstr Name (Maybe TypeExpr)
+                 deriving (Show, Eq)
 
 data Expr = Constant Value
           | Var Sym
@@ -34,6 +38,7 @@ data Expr = Constant Value
           | Let Pattern Expr
           | LetRec Pattern Expr
           | LetIn Pattern Expr Expr
+          | TypeDecl Name [DataCnstr]
           deriving(Show, Eq)
 
 pattern IntC x = Constant (IntVal x)
@@ -53,8 +58,6 @@ pattern l :>  r = InfixOpExpr l (Compare GreaterThan) r
 pattern l :>= r = InfixOpExpr l (Compare GreaterThanEq) r
 pattern l :&& r = InfixOpExpr l BoolAnd r
 pattern l :|| r = InfixOpExpr l BoolOr r
-pattern l :&  r = InfixOpExpr l BinAnd r
-pattern l :|  r = InfixOpExpr l BinOr r
 pattern l :%  r = InfixOpExpr l Mod r
 
 data TypedExpr = TypedExpr{
@@ -90,8 +93,6 @@ data InfixOp = Mul | Plus | Minus | Div
              | Compare Comp
              | BoolAnd
              | BoolOr
-             | BinAnd
-             | BinOr
              | Mod
              deriving(Show, Eq)
 
