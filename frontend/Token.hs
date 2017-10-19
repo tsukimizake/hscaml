@@ -80,4 +80,6 @@ data Token
  | TokenGT
  | TokenGTEq
  | TokenColon
+ | TokenSemicolon
+ | TokenPipe
  deriving (Eq, Show)

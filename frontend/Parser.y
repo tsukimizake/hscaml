@@ -41,6 +41,8 @@ downvar {DownTokenVar $$}
 ']' {TokenCBracket}
 '->'{TokenRArrow}
 ':' {TokenColon}
+';' {TokenSemicolon}
+'|' {TokenPipe}
 if {TokenIf}
 then {TokenThen}
 else {TokenElse}

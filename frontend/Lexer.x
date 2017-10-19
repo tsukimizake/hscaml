@@ -48,7 +48,9 @@ tokens :-
   "<=" {tok TokenLTEq}
   ">=" {tok TokenGTEq}
   ":"  {tok TokenColon}
+  ";"  {tok TokenSemicolon}
   "->" {tok TokenRArrow}
+  "|"  {tok TokenPipe}
   as     {tok TokenAs}
   assert     {tok TokenAssert}
   asr     {tok TokenAsr}
