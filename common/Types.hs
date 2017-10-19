@@ -12,7 +12,10 @@ data Sym = Sym {
 } deriving(Show, Eq)
 
 
-data Value = IntVal Int deriving(Show, Eq)
+data Value = IntVal Int
+           | BoolVal Bool
+             deriving(Show, Eq)
+
 
 data TypeExpr = TypeAtom Text
               | TypeExpr ::-> TypeExpr
@@ -42,6 +45,7 @@ data Expr = Constant Value
           deriving(Show, Eq)
 
 pattern IntC x = Constant (IntVal x)
+pattern BoolC x = Constant (BoolVal x)
 pattern V x = Var (Sym x)
 pattern l :*  r = InfixOpExpr l Mul r
 pattern l :+  r = InfixOpExpr l Plus r

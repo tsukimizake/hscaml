@@ -47,6 +47,9 @@ downvar {DownTokenVar $$}
 "then" {TokenThen}
 "else" {TokenElse}
 "of" {TokenOf}
+"true" {TokenTrue}
+"false" {TokenFalse}
+
 %right "="
 %left "+" "-" "+." "-."
 %left "*" "/" "*." "/."
@@ -83,10 +86,13 @@ Expr :: {Expr}                  -- 括弧、演算子優先順位、即値
 
 ArgExpr :: {Expr}
   : "(" Expr ")" {Paren $2}
-  | int {IntC $1}
   | downvar {V $1}
+  | Constant {Constant $1}
 
-
+Constant :: {Value}
+  : int {IntVal $1}
+  | "true" {BoolVal True}
+  | "false" {BoolVal False}
 
 ArgExprList :: {[Expr]}
   : ArgExpr {[$1]}
@@ -136,8 +142,6 @@ Pattern :: {Pattern}
   | downvar SymList {FuncPattern Nothing (Sym $1) $2}
   -- | orpat
 
-Constant :: {Value}
-  : int {IntVal $1}
 
 TypeExpr :: {TypeExpr}
   : downvar {TypeAtom $1}
