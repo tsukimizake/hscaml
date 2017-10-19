@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, PatternSynonyms#-}
+{-# LANGUAGE TemplateHaskell, PatternSynonyms #-}
 module Types where
 
 import Control.Lens
@@ -33,6 +33,7 @@ data Expr = Constant Value
           | FunApply Sym [Expr]
           | Let Pattern Expr
           | LetRec Pattern Expr
+          | LetIn Pattern Expr Expr
           deriving(Show, Eq)
 
 pattern IntC x = Constant (IntVal x)

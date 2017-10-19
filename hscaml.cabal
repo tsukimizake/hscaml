@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      common, frontend, backend
-  exposed-modules:     Parser, Codegen, Types, OCamlType, Lexer
+  exposed-modules:     Parser, Codegen, Types, OCamlType, Lexer, TypeChecker, Optimizer
   build-depends:       base >= 4.7 && < 5
                      , hspec >= 2.4.4
                      , parsec >= 3.1

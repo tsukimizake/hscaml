@@ -1,7 +1,5 @@
 {
-{-# LANGUAGE OverloadedStrings                 #-}
-{-# LANGUAGE NoMonomorphismRestriction          #-}
-{-# LANGUAGE CPP                                #-}
+{-# LANGUAGE NoMonomorphismRestriction, CPP, OverloadedStrings, RankNTypes #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds          #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures    #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches        #-}
@@ -11,78 +9,201 @@
 {-# OPTIONS_GHC -funbox-strict-fields           #-}
 
 module Lexer
-  ( Alex(..)
-  , AlexPosn(..)
-  , AlexState(..)
-  , Token(..)
-  , TokenClass(..)
-  , alexError
-  , alexMonadScan
-  , runAlex
-  , tokenToPosN
-  )
-where
 
-import System.Exit
-import qualified Data.ByteString.Lazy.Char8 as B
+where
+import Prelude 
+import Data.Text hiding (map, take)
 }
 
-%wrapper "monadUserState-bytestring"
+%wrapper "basic"
 
 $digit = 0-9                    -- digits
 $alpha = [a-zA-Z]               -- alphabetic characters
+$uppercase = [A-Z]
+$downcase = [a-z]
 
 tokens :-
-
   $white+                               ;
-  "--".*                                ;
-  let                                   { tok          TokenLet }
-  in                                    { tok          TokenIn }
-  $digit+                               { tok_read     TokenInt }
-  [\+]                                  { tok          TokenPlus }
-  [\-]                                  { tok          TokenMinus }
-  [\*]                                  { tok          TokenTimes }
-  [\/]                                  { tok          TokenDiv }
-  [=]                                   { tok          TokenEq }
-  [\(]                                  { tok          TokenOB }
-  [\)]                                  { tok          TokenCB }
-  $alpha [$alpha $digit \_ \']*         { tok_string   TokenVar }
+  "(*".*"*)"                            ;
+  let { tok TokenLet}
+  in  { tok TokenIn}
+  $digit+  {tokRead TokenInt}
+  [\+]  {tok TokenPlus}
+  [\-]  {tok TokenMinus}
+  [\*]  {tok TokenMult}
+  [\/]  {tok TokenDiv}
+  [=]   {tok TokenEq}
+  "+."  {tok TokenPlusDot}
+  "-."  {tok TokenMinusDot}
+  "*."  {tok TokenMultDot}
+  "/."  {tok TokenDivDot}
+  [\(]  {tok TokenOParen}
+  [\)]  {tok TokenCParen}
+  [\[]  {tok TokenOBracket}
+  [\]]  {tok TokenCBracket}
+  [&]   {tok TokenAnd}
+  [\<] {tok TokenLT}
+  [\>] {tok TokenGT}  
+  "<=" {tok TokenLTEq}
+  ">=" {tok TokenGTEq}
+  ":"  {tok TokenColon}
+  "->" {tok TokenRArrow}
+  as     {tok TokenAs}
+  assert     {tok TokenAssert}
+  asr     {tok TokenAsr}
+  begin     {tok TokenBegin}
+  class     {tok TokenClass}
+  closed     {tok TokenClosed}
+  constraint {tok TokenConstraint}
+  do     {tok TokenDo}
+  done     {tok TokenDone}
+  downto     {tok TokenDownto}
+  else     {tok TokenElse}
+  end     {tok TokenEnd}
+  excetion     {tok TokenException}
+  external     {tok TokenExternal}
+  false     {tok TokenFalse}
+  for     {tok TokenFor}
+  fun     {tok TokenFun}
+  function     {tok TokenFunction}
+  functor     {tok TokenFunctor}
+  if     {tok TokenIf}
+  include     {tok TokenInclude}
+  inherit     {tok TokenInherit}
+  land     {tok TokenLand}
+  lazy     {tok TokenLazy}
+  lor     {tok TokenLor}
+  lsl     {tok TokenLsl}
+  lsr     {tok TokenLsr}
+  lxor     {tok TokenLxor}
+  match     {tok TokenMatch}
+  method     {tok TokenMethod}
+  mod     {tok TokenMod}
+  module     {tok TokenModule}
+  mutable     {tok TokenMutable}
+  new     {tok TokenNew}
+  of     {tok TokenOf}
+  open     {tok TokenOpen}
+  or     {tok TokenOr}
+  parser     {tok TokenParser}
+  private     {tok TokenPrivate}
+  rec     {tok TokenRec}
+  sig     {tok TokenSig}
+  struct     {tok TokenStruct}
+  then     {tok TokenThen}
+  to     {tok TokenTo}
+  true     {tok TokenTrue}
+  try     {tok TokenTry}
+  type     {tok TokenType}
+  val     {tok TokenVal}
+  virtual     {tok TokenVirtual}
+  when     {tok TokenWhen}
+  while     {tok TokenWhile}
+  with     {tok TokenWith}
+  int     {tokRead TokenInt}
+  tokenvar     {tokText UpperTokenVar}
+  okenvar     {tokText DownTokenVar}
+  plus     {tok TokenPlus}
+  minus     {tok TokenMinus}
+  times     {tok TokenMult}
+  div     {tok TokenDiv}
+  eq     {tok TokenEq}
+
+-- {tok TokenEOF}
+$uppercase [$alpha $digit \_ \']*         { tokText   UpperTokenVar }
+$downcase  [$alpha $digit \_ \']*         { tokText   DownTokenVar }
 
 {
 
--- Some action helpers:
-tok' f (p, _, input, _) len = return $ Token p (f (B.take (fromIntegral len) input))
-tok x = tok' (\s -> x)
-tok_string x = tok' (\s -> x (B.unpack s))
-tok_read x = tok' (\s -> x (read (B.unpack s)))
+tok :: Token -> String -> Token
+tok cls s =  cls
 
--- The token type:
-data Token = Token AlexPosn TokenClass
-  deriving (Show)
+tokText :: (Text -> Token) -> String -> Token
+tokText cls s = cls (pack s)
 
-tokenToPosN :: Token -> AlexPosn
-tokenToPosN (Token p _) = p
+tokRead :: (Read a) => (a->Token) -> String -> Token
+tokRead cls s = cls (read s)
 
-data TokenClass
+
+data Token
  = TokenLet
  | TokenIn
+ | TokenAnd
+ | TokenAs
+ | TokenAssert
+ | TokenAsr
+ | TokenBegin
+ | TokenClass
+ | TokenClosed
+ | TokenConstraint
+ | TokenDo
+ | TokenDone
+ | TokenDownto
+ | TokenElse
+ | TokenEnd
+ | TokenException
+ | TokenExternal
+ | TokenFalse
+ | TokenFor
+ | TokenFun
+ | TokenFunction
+ | TokenFunctor
+ | TokenIf
+ | TokenInclude
+ | TokenInherit
+ | TokenLand
+ | TokenLazy
+ | TokenLor
+ | TokenLsl
+ | TokenLsr
+ | TokenLxor
+ | TokenMatch
+ | TokenMethod
+ | TokenMod
+ | TokenModule
+ | TokenMutable
+ | TokenNew
+ | TokenOf
+ | TokenOpen
+ | TokenOr
+ | TokenParser
+ | TokenPrivate
+ | TokenRec
+ | TokenSig
+ | TokenStruct
+ | TokenThen
+ | TokenTo
+ | TokenTrue
+ | TokenTry
+ | TokenType
+ | TokenVal
+ | TokenVirtual
+ | TokenWhen
+ | TokenWhile
+ | TokenWith
  | TokenInt    Int
- | TokenVar    String
+ | UpperTokenVar Text
+ | DownTokenVar Text
  | TokenPlus
  | TokenMinus
- | TokenTimes
+ | TokenMult
  | TokenDiv
+ | TokenPlusDot
+ | TokenMinusDot
+ | TokenMultDot
+ | TokenDivDot
  | TokenEq
- | TokenOB
- | TokenCB
+ | TokenOParen
+ | TokenCParen
+ | TokenOBracket
+ | TokenCBracket 
+ | TokenRArrow
  | TokenEOF
+ | TokenLT
+ | TokenLTEq
+ | TokenGT
+ | TokenGTEq
+ | TokenColon
  deriving (Eq, Show)
 
-alexEOF :: Alex Token
-alexEOF = do
-  (p, _, _, _) <- alexGetInput
-  return $ Token p TokenEOF
-
-type AlexUserState = ()
-alexInitUserState = ()
 }
