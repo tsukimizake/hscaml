@@ -62,6 +62,42 @@ data TExpr = TConstant Value TypeExpr
            | TTypeDecl Name [DataCnstr] TypeExpr
                deriving(Show, Eq)
 
+theType :: Lens' TExpr TypeExpr
+theType = lens getter setter
+  where
+    getter :: TExpr -> TypeExpr
+    getter (TConstant _ x)= x
+    getter (TVar _ x) = x
+    getter (TParen _ x) = x
+    getter (TInfixOpExpr _ _ _ x) = x
+    getter (TBegEnd _ x) = x
+    getter (TMultiExpr _ x) = x
+    getter (TConstr _ x) = x
+    getter (TIfThenElse _ _ _ x) = x
+    getter (TMatch _ _ x) = x
+    getter (TWhile _ _ x) = x
+    getter (TFunApply _ _ x) = x
+    getter (TLet _ _ x) = x
+    getter (TLetRec _ _ x) = x
+    getter (TLetIn _ _ _ x) = x
+    getter (TTypeDecl _ _ x) = x
+    setter :: TExpr -> TypeExpr -> TExpr
+    setter (TConstant e _) x = TConstant e x
+    setter (TVar e _) x = TVar e x
+    setter (TParen e _) x = TParen e x
+    setter (TInfixOpExpr e f g _) x = TInfixOpExpr e f g x
+    setter (TBegEnd e _) x = TBegEnd e x
+    setter (TMultiExpr e _) x = TMultiExpr e x
+    setter (TConstr e _) x = TConstr e x
+    setter (TIfThenElse e f g _) x = TIfThenElse e f g x
+    setter (TMatch e f _) x = TMatch e f x
+    setter (TWhile e f _) x = TWhile e f x
+    setter (TFunApply e f _) x = TFunApply e f x
+    setter (TLet e f _) x = TLet e f x
+    setter (TLetRec e f _) x = TLetRec e f x
+    setter (TLetIn e f g _) x = TLetIn e f g x
+    setter (TTypeDecl e f _) x = TTypeDecl e f x
+
 pattern IntC x = Constant (IntVal x)
 pattern BoolC x = Constant (BoolVal x)
 pattern V x = Var (Sym x)
