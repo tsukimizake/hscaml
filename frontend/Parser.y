@@ -120,13 +120,13 @@ DataCnstrDecls :: {[DataCnstr]}
   | DataCnstrDecl "|" DataCnstrDecls {$1 : $3}
 
 DataCnstrDecl :: {DataCnstr}
-  : upvar "of" DataCnstrArgs {DataCnstr $1 (Just $3)}
-  | upvar {DataCnstr $1 Nothing}
+  : upvar "of" DataCnstrArgs {DataCnstr $1 $3}
+  | upvar {DataCnstr $1 []}
 
-DataCnstrArgs :: {TypeExpr}
+DataCnstrArgs :: {[TypeExpr]}
 DataCnstrArgs
-  : DataCnstrArgs "*" DataCnstrArg {$1 ::* $3}
-  | DataCnstrArg {$1}
+  : DataCnstrArgs "*" DataCnstrArg {$1 ++ [$3]}
+  | DataCnstrArg {[$1]}
 
 DataCnstrArg :: {TypeExpr}
 DataCnstrArg

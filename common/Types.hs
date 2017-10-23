@@ -19,13 +19,14 @@ data TypeExpr = TypeAtom Text
               | TypeExpr ::-> TypeExpr
               | TypeExpr ::* TypeExpr
               | TypeExpr ::+ TypeExpr
+              | UnspecifiedType
               deriving(Show, Eq)
 
 data CompileError = TypeError String
                   | ParseError String -- TODO
                   deriving (Show)
                   
-data DataCnstr = DataCnstr Name (Maybe TypeExpr) -- [TypeExpr] のほうが良くないか？
+data DataCnstr = DataCnstr Name [TypeExpr]
                  deriving (Show, Eq)
 
 data Expr = Constant Value
@@ -50,17 +51,17 @@ data TExpr = TConstant Value TypeExpr
            | TParen TExpr TypeExpr
            | TInfixOpExpr TExpr InfixOp TExpr TypeExpr
            | TBegEnd TExpr TypeExpr
-           | TMultiExpr [Expr] TypeExpr
+           | TMultiExpr [TExpr] TypeExpr
            | TConstr TExpr TypeExpr
-           | TIfThenElse TExpr Expr TExpr TypeExpr
-           | TMatch TExpr [(Pattern, Expr)] TypeExpr
-           | TWhile TExpr Expr TypeExpr
-           | TFunApply Sym [Expr] TypeExpr
+           | TIfThenElse TExpr TExpr TExpr TypeExpr
+           | TMatch TExpr [(Pattern, TExpr)] TypeExpr
+           | TWhile TExpr TExpr TypeExpr
+           | TFunApply Sym [TExpr] TypeExpr
            | TLet Pattern TExpr TypeExpr
            | TLetRec Pattern TExpr TypeExpr
            | TLetIn Pattern TExpr TExpr TypeExpr
            | TTypeDecl Name [DataCnstr] TypeExpr
-               deriving(Show, Eq)
+           deriving(Show, Eq)
 
 theType :: Lens' TExpr TypeExpr
 theType = lens getter setter

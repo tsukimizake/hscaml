@@ -44,24 +44,24 @@ parserSpec = do
         testParser "let f a b = a = b"
             (Let (FuncPattern Nothing "f" [Sym "a", Sym "b"])
              ((V "a") :== (V "b")))
-        testParser "type hoge = Hoge" (TypeDecl "hoge" [DataCnstr "Hoge" Nothing])
+        testParser "type hoge = Hoge" (TypeDecl "hoge" [DataCnstr "Hoge" []])
         testParser "type hoge = Hoge of hoge"
-            (TypeDecl "hoge" [DataCnstr "Hoge" (Just (TypeAtom "hoge"))])
+            (TypeDecl "hoge" [DataCnstr "Hoge" [(TypeAtom "hoge")]])
         testParser "type hoge = Hoge of hoge | Huga of hoge"
-            (TypeDecl "hoge" [DataCnstr "Hoge" (Just (TypeAtom "hoge")),
-                              DataCnstr "Huga" (Just (TypeAtom "hoge"))])
+            (TypeDecl "hoge" [DataCnstr "Hoge" [(TypeAtom "hoge")],
+                              DataCnstr "Huga" [(TypeAtom "hoge")]])
         testParser "type hoge = Hoge of hoge * hoge"
             (TypeDecl "hoge"
-             [DataCnstr "Hoge" (Just ((TypeAtom "hoge") ::* (TypeAtom "hoge")))])
+             [DataCnstr "Hoge" [(TypeAtom "hoge"), (TypeAtom "hoge")]])
         testParser "type hoge = Hoge of hoge*hoge"
-            (TypeDecl "hoge" [DataCnstr "Hoge" (Just ((TypeAtom "hoge") ::* (TypeAtom "hoge")))])
+            (TypeDecl "hoge" [DataCnstr "Hoge" [(TypeAtom "hoge"), (TypeAtom "hoge")]])
         testParser "type expr = Plus of expr * expr| Minus of expr * expr | Times of expr * expr | Divide of expr * expr | Value of string"
             (TypeDecl "expr"
-             [DataCnstr "Plus" (Just $ (TypeAtom "expr") ::* (TypeAtom "expr")),
-              DataCnstr "Minus" (Just $ (TypeAtom "expr") ::* (TypeAtom "expr")),
-              DataCnstr "Times" (Just $ (TypeAtom "expr") ::* (TypeAtom "expr")),
-              DataCnstr "Divide" (Just $ (TypeAtom "expr") ::* (TypeAtom "expr")),
-              DataCnstr "Value" (Just $ TypeAtom "string")])
+             [DataCnstr "Plus" [(TypeAtom "expr"), (TypeAtom "expr")],
+              DataCnstr "Minus" [(TypeAtom "expr"), (TypeAtom "expr")],
+              DataCnstr "Times" [(TypeAtom "expr"), (TypeAtom "expr")],
+              DataCnstr "Divide" [(TypeAtom "expr"), (TypeAtom "expr")],
+              DataCnstr "Value" [TypeAtom "string"]])
         testParser "let main = print_int 42"
             (Let (VarPattern Nothing (Sym "main")) (FunApply (Sym "print_int") [(IntC 42)]))
         testParser "match x with |1 -> true |2 ->false"

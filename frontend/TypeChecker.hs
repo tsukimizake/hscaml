@@ -34,7 +34,8 @@ initialTypeInfer x = TypingExpr Nothing x
 
 
 -- 全て型が付いているかどうかのチェック
-typedExprisValid :: TypingExpr -> Either CompileError TExpr
+typedExprisValid :: TExpr -> Either CompileError TExpr
 typedExprisValid = undefined
+
 
 
