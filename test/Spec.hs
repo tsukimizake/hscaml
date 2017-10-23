@@ -8,7 +8,9 @@ import OCamlType
 import Text.Parsec
 import GHC.Exts
 import ParserSpec
+import TypeCheckSpec
 
 main :: IO ()
 main = do
     hspec parserSpec
+    hspec typeCheckSpec
