@@ -11,12 +11,12 @@ import Control.Lens hiding ((:<), (:>))
 %error {parseError}
 
 %token
-let {TokenLet}
-rec {TokenRec}
-in  {TokenIn}
 int {TokenInt $$}
 upvar {UpperTokenVar $$}
 downvar {DownTokenVar $$}
+"let" {TokenLet}
+"rec" {TokenRec}
+"in"  {TokenIn}
 "+" {TokenPlus}
 "-" {TokenMinus}
 "*" {TokenMult}
@@ -49,14 +49,15 @@ downvar {DownTokenVar $$}
 "of" {TokenOf}
 "true" {TokenTrue}
 "false" {TokenFalse}
-
+"match" {TokenMatch}
+"with" {TokenWith}
 %right "="
 %left "+" "-" "+." "-."
 %left "*" "/" "*." "/."
 
 %%
 
-Expr :: {Expr}                  -- 括弧、演算子優先順位、即値
+Expr :: {Expr}
   : Expr "+" Expr {$1 :+ $3}
   | Expr "-" Expr {$1 :- $3}
   | Expr "*" Expr {$1 :* $3}
@@ -73,16 +74,24 @@ Expr :: {Expr}                  -- 括弧、演算子優先順位、即値
   | Expr "&&" Expr {$1 :&& $3}
   | Expr "||" Expr {$1 :|| $3}
   | Expr "%" Expr {$1 :% $3}
-  | let Pattern "=" Expr {Let $2 $4}
-  | let rec Pattern "=" Expr {LetRec $3 $5}
+  | "let" Pattern "=" Expr {Let $2 $4}
+  | "let" "rec" Pattern "=" Expr {LetRec $3 $5}
+  | "let" Pattern "=" Expr "in" Expr {LetIn $2 $4 $6}
   | Expr "*" Expr {$1 :* $3}
   | Expr "/" Expr {$1 :/ $3}
   | Expr "*." Expr {$1 :*. $3}
   | Expr "/." Expr {$1 :/. $3}
   | downvar ArgExprList {FunApply (Sym $1) $2}
   | "if" Expr "then" Expr "else" Expr {IfThenElse $2 $4 $6}
+  | "match" Expr "with" MatchPats {Match $2 $4}
   | TypeDecl {$1}
   | ArgExpr {$1}
+
+MatchPats :: {[(Pattern, Expr)]}
+  : MatchPat {[$1]}
+  | MatchPat MatchPats {$1 : $2}
+MatchPat :: {(Pattern, Expr)}
+  : "|" Pattern "->" Expr {($2, $4)}
 
 ArgExpr :: {Expr}
   : "(" Expr ")" {Paren $2}

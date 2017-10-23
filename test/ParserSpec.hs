@@ -64,4 +64,13 @@ parserSpec = do
               DataCnstr "Value" (Just $ TypeAtom "string")])
         testParser "let main = print_int 42"
             (Let (VarPattern Nothing (Sym "main")) (FunApply (Sym "print_int") [(IntC 42)]))
-        -- testParser "match "
+        testParser "match x with |1 -> true |2 ->false"
+            (Match (V "x") [(ConstantPattern Nothing (IntVal 1), (Constant(BoolVal True))),
+                            (ConstantPattern Nothing (IntVal 2), (Constant(BoolVal False)))])
+        testParser "let f x y = x*y in f"
+            (LetIn
+              (FuncPattern
+               Nothing
+               (Sym "f") [Sym "x", Sym "y"])
+              ((V "x") :* (V "y"))
+              (V "f"))

@@ -11,11 +11,9 @@ data Sym = Sym {
     _Symname :: Name
 } deriving(Show, Eq)
 
-
 data Value = IntVal Int
            | BoolVal Bool
              deriving(Show, Eq)
-
 
 data TypeExpr = TypeAtom Text
               | TypeExpr ::-> TypeExpr
@@ -23,7 +21,11 @@ data TypeExpr = TypeAtom Text
               | TypeExpr ::+ TypeExpr
               deriving(Show, Eq)
 
-data DataCnstr = DataCnstr Name (Maybe TypeExpr)
+data CompileError = TypeError String
+                  | ParseError String -- TODO
+                  deriving (Show)
+                  
+data DataCnstr = DataCnstr Name (Maybe TypeExpr) -- [TypeExpr] のほうが良くないか？
                  deriving (Show, Eq)
 
 data Expr = Constant Value
@@ -31,11 +33,10 @@ data Expr = Constant Value
           | Paren Expr
           | InfixOpExpr Expr InfixOp Expr
           | BegEnd Expr
-          | ExprWithType Expr TypeExpr
           | MultiExpr [Expr]
           | Constr Expr
           | IfThenElse Expr Expr Expr
-          | Match Expr PatternMatching
+          | Match Expr [(Pattern, Expr)]
           | While Expr Expr
           | FunApply Sym [Expr]
           | Let Pattern Expr
@@ -43,6 +44,23 @@ data Expr = Constant Value
           | LetIn Pattern Expr Expr
           | TypeDecl Name [DataCnstr]
           deriving(Show, Eq)
+
+data TExpr = TConstant Value TypeExpr
+           | TVar Sym TypeExpr
+           | TParen TExpr TypeExpr
+           | TInfixOpExpr TExpr InfixOp TExpr TypeExpr
+           | TBegEnd TExpr TypeExpr
+           | TMultiExpr [Expr] TypeExpr
+           | TConstr TExpr TypeExpr
+           | TIfThenElse TExpr Expr TExpr TypeExpr
+           | TMatch TExpr [(Pattern, Expr)] TypeExpr
+           | TWhile TExpr Expr TypeExpr
+           | TFunApply Sym [Expr] TypeExpr
+           | TLet Pattern TExpr TypeExpr
+           | TLetRec Pattern TExpr TypeExpr
+           | TLetIn Pattern TExpr TExpr TypeExpr
+           | TTypeDecl Name [DataCnstr] TypeExpr
+               deriving(Show, Eq)
 
 pattern IntC x = Constant (IntVal x)
 pattern BoolC x = Constant (BoolVal x)
@@ -64,10 +82,7 @@ pattern l :&& r = InfixOpExpr l BoolAnd r
 pattern l :|| r = InfixOpExpr l BoolOr r
 pattern l :%  r = InfixOpExpr l Mod r
 
-data TypedExpr = TypedExpr{
-    _TypedExprtypeExpr :: TypeExpr,
-    _TypedExprbodyExpr :: Expr
-} deriving (Show, Eq)
+data Statement = Statement [Expr] deriving (Show, Eq)
 
 data Pattern = VarPattern {
     _patType :: (Maybe TypeExpr),
@@ -100,10 +115,9 @@ data InfixOp = Mul | Plus | Minus | Div
              | Mod
              deriving(Show, Eq)
 
-data PatternMatching = PatternMatching Pattern Expr deriving(Show, Eq)
 
 makeFields ''Sym
-makeFields ''TypedExpr
+makeFields ''TExpr
 makeLenses ''Pattern
 -- makePrisms ''TypeExpr
 -- makePrisms ''Expr

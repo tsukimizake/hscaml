@@ -42,6 +42,7 @@ executable hscaml-exe
 test-suite hscaml-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
+  other-modules:       TypeCheckSpec, ParserSpec
   main-is:             Spec.hs
   build-depends:       base
                      , hscaml
