@@ -156,9 +156,3 @@ data InfixOp = Mul | Plus | Minus | Div
 makeFields ''Sym
 makeFields ''TExpr
 makeLenses ''Pattern
--- makePrisms ''TypeExpr
--- makePrisms ''Expr
--- makePrisms ''Comp
--- makePrisms ''InfixOp
--- makePrisms ''Pattern
--- makePrisms ''LetBinding

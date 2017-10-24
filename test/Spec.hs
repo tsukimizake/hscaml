@@ -5,7 +5,6 @@ import Data.Text
 import Parser
 import Types
 import OCamlType
-import Text.Parsec
 import GHC.Exts
 import ParserSpec
 import TypeCheckSpec
