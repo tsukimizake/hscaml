@@ -19,7 +19,7 @@ typeCheckSpec = do
              (FuncPattern
               (Just $ ocamlInt ::-> ocamlInt ::-> ocamlInt)
               (Sym "f") [Sym "x", Sym "y"])
-             (TVar (Sym "x") ocamlInt *: TVar (Sym "y") ocamlInt)
+             (TVar (Sym "x") ocamlInt :*: TVar (Sym "y") ocamlInt)
              (TVar (Sym "f") (ocamlInt ::-> ocamlInt ::-> ocamlInt))
              (ocamlInt ::-> ocamlInt ::-> ocamlInt))
             -- (LetIn
