@@ -1,3 +1,4 @@
+{-# OPTIONS -Wall #-}
 {-# LANGUAGE OverloadedStrings #-}
 module TypeCheckSpec where
 import Test.Hspec
@@ -5,7 +6,7 @@ import Types
 import OCamlType
 import Parser
 import TypeChecker
-import Data.Text
+
 
 testTypeCheck :: String -> TExpr -> Spec
 testTypeCheck src ast = it src $ do

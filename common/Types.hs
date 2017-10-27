@@ -1,9 +1,9 @@
+{-# OPTIONS -Wall #-}
 {-# LANGUAGE TemplateHaskell, PatternSynonyms #-}
 module Types where
 
 import Control.Lens
 import Data.Text (Text)
-import qualified Data.Text as T
 
 type Name = Text
 
@@ -99,24 +99,43 @@ theType = lens getter setter
     setter (TLetIn e f g _) x = TLetIn e f g x
     setter (TTypeDecl e f _) x = TTypeDecl e f x
 
+pattern IntC :: Int -> Expr
 pattern IntC x = Constant (IntVal x)
+pattern BoolC :: Bool -> Expr
 pattern BoolC x = Constant (BoolVal x)
+pattern V :: Text -> Expr
 pattern V x = Var (Sym x)
+pattern (:*) :: Expr -> Expr -> Expr
 pattern l :*  r = InfixOpExpr l Mul r
+pattern (:+) :: Expr -> Expr -> Expr
 pattern l :+  r = InfixOpExpr l Plus r
+pattern (:-) :: Expr -> Expr -> Expr
 pattern l :-  r = InfixOpExpr l Minus r
+pattern (:/) :: Expr -> Expr -> Expr
 pattern l :/  r = InfixOpExpr l Div r
+pattern (:*.) :: Expr -> Expr -> Expr
 pattern l :*. r = InfixOpExpr l MulDot r
+pattern (:+.) :: Expr -> Expr -> Expr
 pattern l :+. r = InfixOpExpr l PlusDot r
+pattern (:-.) :: Expr -> Expr -> Expr
 pattern l :-. r = InfixOpExpr l MinusDot r
+pattern (:/.) :: Expr -> Expr -> Expr
 pattern l :/. r = InfixOpExpr l DivDot r
+pattern (:<) :: Expr -> Expr -> Expr
 pattern l :<  r = InfixOpExpr l (Compare LessThan) r
+pattern (:<=) :: Expr -> Expr -> Expr
 pattern l :<= r = InfixOpExpr l (Compare LessThanEq) r
+pattern (:==) :: Expr -> Expr -> Expr
 pattern l :== r = InfixOpExpr l (Compare Equal) r
+pattern (:>) :: Expr -> Expr -> Expr
 pattern l :>  r = InfixOpExpr l (Compare GreaterThan) r
+pattern (:>=) :: Expr -> Expr -> Expr
 pattern l :>= r = InfixOpExpr l (Compare GreaterThanEq) r
+pattern (:&&) :: Expr -> Expr -> Expr
 pattern l :&& r = InfixOpExpr l BoolAnd r
+pattern (:||) :: Expr -> Expr -> Expr
 pattern l :|| r = InfixOpExpr l BoolOr r
+pattern (:%) :: Expr -> Expr -> Expr
 pattern l :%  r = InfixOpExpr l Mod r
 
 data Statement = Statement [Expr] deriving (Show, Eq)

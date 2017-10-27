@@ -1,3 +1,4 @@
+{-# OPTIONS -Wall #-}
 {-# LANGUAGE OverloadedStrings, PatternSynonyms #-}
 module OCamlType where
 import Types

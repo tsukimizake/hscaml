@@ -1,5 +1,6 @@
-{-# LANGUAGE TemplateHaskell #-}
-module TypeChecker where
+{-# OPTIONS -Wall #-}
+{-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
+module TypeChecker (typeCheck) where
 import Control.Lens
 import Types
 import OCamlType
