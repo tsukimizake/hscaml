@@ -1,3 +1,4 @@
+{-# OPTIONS -Wall #-}
 {-# LANGUAGE OverloadedStrings #-}
 module ParserSpec(parserSpec) where
 import Test.Hspec
