@@ -24,6 +24,7 @@ data TypeExpr = TypeAtom Text
               -- | TypeVar Text -- TODO:多相型
               deriving(Show, Eq, Ord)
 
+infixr ::->
 
 data CompileError = TypeError String
                   | ParseError String -- TODO
