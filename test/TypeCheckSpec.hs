@@ -14,14 +14,25 @@ testTypeCheck src ast = it src $ do
 
 typeCheckSpec :: Spec
 typeCheckSpec = do
+    describe "renameSymsByScope" $ it "let x = 1 in let x = 2 in let x = 3 in x" $ do
+        (renameSymsByScope . exprParser $ "let x = 1 in let x = 2 in let x = 3 in x")
+            `shouldBe` (LetIn
+                        (VarPattern Nothing (Sym "x_gen_0"))
+                        (IntC 1)
+                        (LetIn (VarPattern Nothing (Sym "x_gen_1"))
+                         (IntC 2)
+                         (LetIn (VarPattern Nothing (Sym "x_gen_2"))
+                          (IntC 3)
+                          (V "x_gen_2"))))
+
     describe "typecheck" $ do
         testTypeCheck "let f x y = x*y in f"
             (TLetIn
              (FuncPattern
               (Just $ ocamlInt ::-> ocamlInt ::-> ocamlInt)
-              (Sym "f") [Sym "x", Sym "y"])
-             (TVar (Sym "x") ocamlInt :*: TVar (Sym "y") ocamlInt)
-             (TVar (Sym "f") (ocamlInt ::-> ocamlInt ::-> ocamlInt))
+              (Sym "f_gen_0") [Sym "x_gen_0", Sym "y_gen_0"])
+             (TVar (Sym "x_gen_0") ocamlInt :*: TVar (Sym "y_gen_0") ocamlInt)
+             (TVar (Sym "f_gen_0") (ocamlInt ::-> ocamlInt ::-> ocamlInt))
              (ocamlInt ::-> ocamlInt ::-> ocamlInt))
             -- (LetIn
             --   (FuncPattern
@@ -29,3 +40,4 @@ typeCheckSpec = do
             --    (Sym "f") [Sym "x", Sym "y"])
             --   ((V "x") :* (V "y"))
             --   (V "f"))
+
