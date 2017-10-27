@@ -9,26 +9,31 @@ type Name = Text
 
 data Sym = Sym {
     _Symname :: Name
-} deriving(Show, Eq)
+} deriving(Show, Eq, Ord)
 
 data Value = IntVal Int
            | BoolVal Bool
-             deriving(Show, Eq)
+             deriving(Show, Eq, Ord)
 
+-- 型式
 data TypeExpr = TypeAtom Text
               | TypeExpr ::-> TypeExpr
               | TypeExpr ::* TypeExpr
               | TypeExpr ::+ TypeExpr
               | UnspecifiedType
-              deriving(Show, Eq)
+              -- | TypeVar Text -- TODO:多相型
+              deriving(Show, Eq, Ord)
+
 
 data CompileError = TypeError String
                   | ParseError String -- TODO
                   deriving (Show)
                   
 data DataCnstr = DataCnstr Name [TypeExpr]
-                 deriving (Show, Eq)
+                 deriving (Show, Eq, Ord)
 
+
+-- 式
 data Expr = Constant Value
           | Var Sym
           | Paren Expr
@@ -44,8 +49,9 @@ data Expr = Constant Value
           | LetRec Pattern Expr
           | LetIn Pattern Expr Expr
           | TypeDecl Name [DataCnstr]
-          deriving(Show, Eq)
+          deriving(Show, Eq, Ord)
 
+-- 型付いた式
 data TExpr = TConstant Value TypeExpr
            | TVar Sym TypeExpr
            | TParen TExpr TypeExpr
@@ -61,7 +67,7 @@ data TExpr = TConstant Value TypeExpr
            | TLetRec Pattern TExpr TypeExpr
            | TLetIn Pattern TExpr TExpr TypeExpr
            | TTypeDecl Name [DataCnstr] TypeExpr
-           deriving(Show, Eq)
+           deriving(Show, Eq, Ord)
 
 theType :: Lens' TExpr TypeExpr
 theType = lens getter setter
@@ -144,13 +150,13 @@ data Pattern = VarPattern {
     _patType :: (Maybe TypeExpr),
     _sym :: Sym
 }| ConstantPattern {
-    _patType :: (Maybe TypeExpr), 
+    _patType :: (Maybe TypeExpr),
     _val :: Value
 }| ParenPattern {
      _patType :: (Maybe TypeExpr),
      _pat :: Pattern
 }| ListPattern {
-     _patType :: (Maybe TypeExpr), 
+     _patType :: (Maybe TypeExpr),
      _exp :: [Expr]
 }| FuncPattern {
     _patType :: (Maybe TypeExpr),
@@ -160,16 +166,16 @@ data Pattern = VarPattern {
     _patType :: (Maybe TypeExpr),
     _left :: Pattern,
     _right :: Pattern
-} deriving (Show, Eq)
+} deriving (Show, Eq, Ord)
 
-data Comp = LessThan | LessThanEq | Equal | GreaterThan | GreaterThanEq deriving (Show, Eq)
+data Comp = LessThan | LessThanEq | Equal | GreaterThan | GreaterThanEq deriving (Show, Eq, Ord)
 data InfixOp = Mul | Plus | Minus | Div
              | MulDot | PlusDot | MinusDot | DivDot
              | Compare Comp
              | BoolAnd
              | BoolOr
              | Mod
-             deriving(Show, Eq)
+             deriving(Show, Eq, Ord)
 
 
 makeFields ''Sym
