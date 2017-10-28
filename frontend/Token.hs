@@ -81,5 +81,6 @@ data Token
  | TokenGTEq
  | TokenColon
  | TokenSemicolon
+ | TokenDoubleSemicolon
  | TokenPipe
  deriving (Eq, Show)

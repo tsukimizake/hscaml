@@ -13,11 +13,12 @@ instance IsString Sym where
 
 testParser :: String -> Expr -> Spec
 testParser lhs rhs= it lhs $ do
-        exprParser lhs `shouldBe` rhs
+        parseExpr lhs `shouldBe` rhs
+
 
 parserSpec :: Spec
 parserSpec = do
-    describe "parser" $ do
+    describe "parseExpr" $ do
         testParser "82*3+3-(2-  2)+  (2  )  " ((((IntC 82) :* (IntC 3)) :+ (IntC 3)) :- (Paren ((IntC 2) :- (IntC 2))) :+ (Paren (IntC 2)))
         testParser "x*y-1" (((V "x") :* (V "y")) :- (IntC 1))
         testParser "x * f y -1" ((V "x" :* (FunApply "f" [V "y"])) :- (IntC 1))
@@ -71,3 +72,6 @@ parserSpec = do
                (Sym "f") [Sym "x", Sym "y"])
               ((V "x") :* (V "y"))
               (V "f"))
+    describe "parseStatement" $ do
+        it  "hoge ;; huga ;; " $ parseStatement "hoge ;; huga ;; "
+            `shouldBe` (Statement [V "hoge", V "huga"])

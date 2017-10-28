@@ -7,15 +7,14 @@ import OCamlType
 import Parser
 import TypeChecker
 
-
-testTypeCheck :: String -> TExpr -> Spec
-testTypeCheck src ast = it src $ do
-    (typeCheck . exprParser $ src) `shouldBe` ast
+testTypeCheckExpr :: String -> TExpr -> Spec
+testTypeCheckExpr src ast = it src $ do
+    (typeCheck . parseExpr $ src) `shouldBe` ast
 
 typeCheckSpec :: Spec
 typeCheckSpec = do
     describe "renameSymsByScope" $ it "let x = 1 in let x = 2 in let x = 3 in x" $ do
-        (renameSymsByScope . exprParser $ "let x = 1 in let x = 2 in let x = 3 in x")
+        (renameSymsByScope . parseExpr $ "let x = 1 in let x = 2 in let x = 3 in x")
             `shouldBe` (LetIn
                         (VarPattern Nothing (Sym "x_gen_0"))
                         (IntC 1)
@@ -26,7 +25,7 @@ typeCheckSpec = do
                           (V "x_gen_2"))))
 
     describe "typecheck" $ do
-        testTypeCheck "let f x y = x*y in f"
+        testTypeCheckExpr "let f x y = x*y in f"
             (TLetIn
              (FuncPattern
               (Just $ ocamlInt ::-> ocamlInt ::-> ocamlInt)

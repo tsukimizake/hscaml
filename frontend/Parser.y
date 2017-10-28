@@ -1,12 +1,13 @@
 {
-module Parser (exprParser) where
+module Parser (parseStatement, parseExpr) where
 import Types
 import Token
 import Lexer
 import Control.Lens hiding ((:<), (:>))
 }
 
-%name parser
+%name stmtParser Stmt
+%name exprParser Expr
 %tokentype {Token}
 %error {parseError}
 
@@ -51,11 +52,18 @@ downvar {DownTokenVar $$}
 "false" {TokenFalse}
 "match" {TokenMatch}
 "with" {TokenWith}
+";;" {TokenDoubleSemicolon}
 %right "="
 %left "+" "-" "+." "-."
 %left "*" "/" "*." "/."
 
 %%
+Stmt :: {Statement}
+  : Exprs {Statement $1}
+
+Exprs :: {[Expr]}
+  : Expr ";;" {[$1]}
+  | Expr ";;" Exprs  {$1 : $3}
 
 Expr :: {Expr}
   : Expr "+" Expr {$1 :+ $3}
@@ -160,9 +168,11 @@ TypeExpr :: {TypeExpr}
 
 {
 
-exprParser :: String -> Expr
-exprParser = parser . alexScanTokens
+parseStatement :: String -> Statement
+parseStatement = stmtParser . alexScanTokens
 
+parseExpr :: String -> Expr
+parseExpr = exprParser . alexScanTokens
   
 parseError tok = error (show tok)
 

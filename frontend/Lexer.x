@@ -49,6 +49,7 @@ tokens :-
   ">=" {tok TokenGTEq}
   ":"  {tok TokenColon}
   ";"  {tok TokenSemicolon}
+  ";;"  {tok TokenDoubleSemicolon}
   "->" {tok TokenRArrow}
   "|"  {tok TokenPipe}
   as     {tok TokenAs}
