@@ -1,5 +1,5 @@
 {-# OPTIONS -Wall #-}
-{-# LANGUAGE TemplateHaskell, PatternSynonyms #-}
+{-# LANGUAGE TemplateHaskell, PatternSynonyms, MultiParamTypeClasses, FunctionalDependencies, TypeSynonymInstances #-}
 module Types where
 
 import Control.Lens
@@ -8,7 +8,7 @@ import Data.Text (Text)
 type Name = Text
 
 data Sym = Sym {
-    _Symname :: Name
+    _symName :: Name
 } deriving(Show, Eq, Ord)
 
 data Value = IntVal Int
@@ -180,5 +180,4 @@ data InfixOp = Mul | Plus | Minus | Div
 
 
 makeFields ''Sym
-makeFields ''TExpr
 makeLenses ''Pattern

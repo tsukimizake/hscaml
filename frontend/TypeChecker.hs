@@ -185,7 +185,7 @@ impl (LetIn (FuncPattern t (Sym s) args) e1 e2) = do
 impl e = mapMExpr impl e
 
 unwrapSym :: Sym -> Name
-unwrapSym (Sym s) = s
+unwrapSym s = s ^. Types.name
 
 pushAndRenameSym :: Name -> State RenameState Name
 pushAndRenameSym s = do
