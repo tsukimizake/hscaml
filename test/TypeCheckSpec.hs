@@ -34,10 +34,3 @@ typeCheckSpec = do
              (TVar (Sym "x_gen_0") ocamlInt :*: TVar (Sym "y_gen_0") ocamlInt)
              (TVar (Sym "f_gen_0") (ocamlInt ::-> ocamlInt ::-> ocamlInt))
              (ocamlInt ::-> ocamlInt ::-> ocamlInt))
-            -- (LetIn
-            --   (FuncPattern
-            --    Nothing
-            --    (Sym "f") [Sym "x", Sym "y"])
-            --   ((V "x") :* (V "y"))
-            --   (V "f"))
-

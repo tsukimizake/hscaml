@@ -6,11 +6,7 @@ import Data.Text
 import Parser
 import Types
 import OCamlType
-import Text.Parsec
 import GHC.Exts
-
-isRight (Right _) = True
-isRight _ = False
 
 instance IsString Sym where
     fromString x = Sym $ pack x
