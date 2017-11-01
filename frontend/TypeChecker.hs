@@ -102,7 +102,7 @@ genSym name = do
     let n = fromMaybe 0 (oldmap ^. at name) :: Int
     let newmap = oldmap & at name ?~ (n+1)
     counter .= newmap
-    pure $ name <> "_gen_" <> (T.pack $ show n)
+    pure $ "_" <> name <> "_gen_" <> (T.pack $ show n)
 
 
 mapMExpr :: (Monad m) => (Expr -> m Expr) -> Expr -> m Expr
