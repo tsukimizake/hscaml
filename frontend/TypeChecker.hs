@@ -22,8 +22,7 @@ data TypeRestrict =
         _theType :: TypeExpr
     }|
     TypeEq{
-        _lname :: Name,
-        _rname :: Name
+        _names :: [Name]
 } deriving (Show, Ord, Eq)
 
 makeLenses ''TypeRestrict
