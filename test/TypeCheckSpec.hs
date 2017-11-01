@@ -9,7 +9,10 @@ import TypeChecker
 
 testTypeCheckExpr :: String -> TExpr -> Spec
 testTypeCheckExpr src ast = it src $ do
-    (typeCheck . parseExpr $ src) `shouldBe` ast
+    let res = typeCheck . parseExpr $ src
+    case res of
+        Left err -> error $ show err
+        Right res' -> res' `shouldBe` ast
 
 typeCheckSpec :: Spec
 typeCheckSpec = do

@@ -1,4 +1,5 @@
 {-# OPTIONS -Wall #-}
+{-# OPTIONS_GHC -fno-warn-name-shadowing, -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
 module TypeChecker (typeCheck, renameSymsByScope) where
 import Control.Lens
@@ -10,7 +11,6 @@ import Control.Monad.State.Strict
 import Data.Map as M
 import Data.Monoid
 import Data.Maybe
-import Debug.Trace
 
 data TypeRestrict =
     OpType {
@@ -35,8 +35,33 @@ data RenameState =
 
 makeLenses ''RenameState
 
-typeCheck :: Expr -> TExpr
-typeCheck = initialTypeInfer . renameSymsByScope
+instance AsTExpr Expr where
+    _TExpr  = prism toExpr toTExpr
+      where
+        toExpr :: TExpr -> Expr
+        toExpr (TConstant x _)= Constant x
+        toExpr (TVar x _) = Var x
+        toExpr (TParen x _) = Paren (toExpr x)
+        toExpr (TInfixOpExpr x y z _) = InfixOpExpr (toExpr x) y (toExpr z)
+        toExpr (TBegEnd x _) = BegEnd (toExpr x)
+        toExpr (TMultiExpr x _) = MultiExpr (fmap toExpr x)
+        toExpr (TConstr x _) = Constr (toExpr x)
+        toExpr (TIfThenElse x y z _) = IfThenElse (toExpr x) (toExpr y) (toExpr z)
+        toExpr (TMatch x y _) = Match (toExpr x) (fmap toExpr <$> y)
+        toExpr (TWhile x y _) = While (toExpr x) (toExpr y)
+        toExpr (TFunApply x y _) = FunApply x (fmap toExpr y)
+        toExpr (TLet x y _) = Let x (toExpr y)
+        toExpr (TLetRec x y _) = LetRec x (toExpr y)
+        toExpr (TLetIn x y z _) = LetIn x (toExpr y) (toExpr z)
+        toExpr (TTypeDecl x y _) = TypeDecl x y
+        toTExpr :: Expr -> Either Expr TExpr
+        toTExpr e = case typeCheck e of
+            Left _ -> Left e
+            Right res -> return res
+
+
+typeCheck :: Expr -> Either CompileError TExpr
+typeCheck = Right . initialTypeInfer . renameSymsByScope
 
 -- とりあえずプリミティブや即値やアノテーション書かれたやつにだけ型を付ける
 initialTypeInfer :: Expr -> TExpr
