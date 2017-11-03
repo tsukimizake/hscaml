@@ -55,13 +55,20 @@ instance AsTExpr Expr where
         toExpr (TLetIn x y z _) = LetIn x (toExpr y) (toExpr z)
         toExpr (TTypeDecl x y _) = TypeDecl x y
         toTExpr :: Expr -> Either Expr TExpr
-        toTExpr e = case typeCheck e of
-            Left _ -> Left e
-            Right res -> return res
-
+        toTExpr e =
+            let te = initialTypeInfer e
+                tet = te ^. typeExpr
+            in case tet of
+                   UnspecifiedType -> Left e
+                   _ -> Right te
 
 typeCheck :: Expr -> Either CompileError TExpr
-typeCheck = Right . initialTypeInfer . renameSymsByScope
+typeCheck = runTypeInfer . initialTypeInfer . renameSymsByScope
+  where
+    runTypeInfer :: TExpr -> Either CompileError TExpr
+    runTypeInfer x = do
+        let res = evalState (typeInfer x) initialRestriction
+        typedExprisValid res
 
 -- とりあえずプリミティブや即値やアノテーション書かれたやつにだけ型を付ける
 initialTypeInfer :: Expr -> TExpr
@@ -156,57 +163,57 @@ mapMExpr _ (TypeDecl e1 e2) = pure $ TypeDecl e1 e2
 
 renameSymsByScope :: Expr -> Expr
 renameSymsByScope e = evalState (impl e) initialRenameState
-
-impl :: Expr -> State RenameState Expr
-impl (V s) = do
+  where 
+    impl :: Expr -> State RenameState Expr
+    impl (V s) = do
         stack <- use renameStack
         let newname = stack ^. at s & fromJust & head
         pure $ V newname
-impl x@(IntC _) = pure $ x
-impl (Let (VarPattern t (Sym s)) e) = do
-    s' <- pushAndRenameSym s
-    e' <- impl e
-    popRenameStack s    
-    pure (Let (VarPattern t (Sym s')) e')
-impl (LetRec (VarPattern t (Sym s)) e) = do
-    s' <- pushAndRenameSym s
-    e' <- impl e
-    popRenameStack s    
-    pure (LetRec (VarPattern t (Sym s')) e')
-impl (LetIn (VarPattern t (Sym s)) e1 e2) = do
-    s' <- pushAndRenameSym s
-    e1' <- impl e1
-    e2' <- impl e2
-    popRenameStack s    
-    pure (LetIn (VarPattern t (Sym s')) e1' e2')
+    impl x@(IntC _) = pure $ x
+    impl (Let (VarPattern t (Sym s)) e) = do
+        s' <- pushAndRenameSym s
+        e' <- impl e
+        popRenameStack s
+        pure (Let (VarPattern t (Sym s')) e')
+    impl (LetRec (VarPattern t (Sym s)) e) = do
+        s' <- pushAndRenameSym s
+        e' <- impl e
+        popRenameStack s
+        pure (LetRec (VarPattern t (Sym s')) e')
+    impl (LetIn (VarPattern t (Sym s)) e1 e2) = do
+        s' <- pushAndRenameSym s
+        e1' <- impl e1
+        e2' <- impl e2
+        popRenameStack s
+        pure (LetIn (VarPattern t (Sym s')) e1' e2')
 
-impl (Let (FuncPattern t (Sym s) args) e) = do
-    s' <- pushAndRenameSym s
-    argsText' <- mapM (pushAndRenameSym . unwrapSym) args
-    let args' = fmap Sym argsText'
-    e' <- impl e
-    popRenameStack s
-    mapM_ (popRenameStack . unwrapSym) args
-    pure $ Let (FuncPattern t (Sym s') (args')) e'
-impl (LetRec (FuncPattern t (Sym s) args) e) = do
-    s' <- pushAndRenameSym s
-    argsText' <- mapM (pushAndRenameSym . unwrapSym) args
-    let args' = fmap Sym argsText'
-    e' <- impl e
-    popRenameStack s
-    mapM_ (popRenameStack . unwrapSym) args
-    pure $ LetRec (FuncPattern t (Sym s') (args')) e'
+    impl (Let (FuncPattern t (Sym s) args) e) = do
+        s' <- pushAndRenameSym s
+        argsText' <- mapM (pushAndRenameSym . unwrapSym) args
+        let args' = fmap Sym argsText'
+        e' <- impl e
+        popRenameStack s
+        mapM_ (popRenameStack . unwrapSym) args
+        pure $ Let (FuncPattern t (Sym s') (args')) e'
+    impl (LetRec (FuncPattern t (Sym s) args) e) = do
+        s' <- pushAndRenameSym s
+        argsText' <- mapM (pushAndRenameSym . unwrapSym) args
+        let args' = fmap Sym argsText'
+        e' <- impl e
+        popRenameStack s
+        mapM_ (popRenameStack . unwrapSym) args
+        pure $ LetRec (FuncPattern t (Sym s') (args')) e'
 
-impl (LetIn (FuncPattern t (Sym s) args) e1 e2) = do
-    s' <- pushAndRenameSym s
-    argsText' <- mapM (pushAndRenameSym . unwrapSym) args
-    let args' = fmap Sym argsText'
-    e1' <- impl e1
-    e2' <- impl e2
-    popRenameStack s
-    mapM_ (popRenameStack . unwrapSym) args 
-    pure $ LetIn (FuncPattern t (Sym s') (args')) e1' e2'
-impl e = mapMExpr impl e
+    impl (LetIn (FuncPattern t (Sym s) args) e1 e2) = do
+        s' <- pushAndRenameSym s
+        argsText' <- mapM (pushAndRenameSym . unwrapSym) args
+        let args' = fmap Sym argsText'
+        e1' <- impl e1
+        e2' <- impl e2
+        popRenameStack s
+        mapM_ (popRenameStack . unwrapSym) args
+        pure $ LetIn (FuncPattern t (Sym s') (args')) e1' e2'
+    impl e = mapMExpr impl e
 
 unwrapSym :: Sym -> Name
 unwrapSym s = s ^. Types.name
@@ -249,10 +256,10 @@ initialRestriction = S.fromList
       OpType Mod (UnspecifiedType ::-> UnspecifiedType ::-> ocamlBool)
     ]
 
-typeInfer :: State (Set TypeRestrict) TExpr
+typeInfer :: TExpr -> State (Set TypeRestrict) TExpr
 typeInfer = undefined
 
--- まずシンボルのリネームを先にやったほうがよいのでは？
+-- まずシンボルのリネームを先にやったほうがよいのでは？ やった
 -- 型が付きうるのは、シンボル、演算子、式. 式はTExprに型が付くから、シンボルと演算子だけメモすればよい
 -- letの右辺からの推論
 -- let f x y = x*y
