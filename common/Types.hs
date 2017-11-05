@@ -152,23 +152,23 @@ pattern l :%: r = TInfixOpExpr l Mod r (TypeAtom "int" ::-> TypeAtom "int" ::-> 
 data Statement = Statement [Expr] deriving (Show, Eq)
 
 data Pattern = VarPattern {
-    _patType :: (Maybe TypeExpr),
+    _patType :: TypeExpr,
     _sym :: Sym
 }| ConstantPattern {
-    _patType :: (Maybe TypeExpr),
+    _patType :: TypeExpr,
     _val :: Value
 }| ParenPattern {
-     _patType :: (Maybe TypeExpr),
+     _patType :: TypeExpr,
      _pat :: Pattern
 }| ListPattern {
-     _patType :: (Maybe TypeExpr),
+     _patType :: TypeExpr,
      _exprs :: [Expr]
 }| FuncPattern {
-    _patType :: (Maybe TypeExpr),
+    _patType :: TypeExpr,
     _sym :: Sym,
     _args :: [Sym]
 }| OrPattern{
-    _patType :: (Maybe TypeExpr),
+    _patType :: TypeExpr,
     _left :: Pattern,
     _right :: Pattern
 } deriving (Show, Eq, Ord)

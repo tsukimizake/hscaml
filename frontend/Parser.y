@@ -150,13 +150,13 @@ SymList :: {[Sym]}
   : DownvarList {fmap Sym $1}
 
 Pattern :: {Pattern}
-  : downvar {VarPattern Nothing (Sym $1)}
-  | Constant {ConstantPattern Nothing $1}
-  | "(" Pattern ":" TypeExpr ")" {let theType = Just $4
+  : downvar {VarPattern UnspecifiedType (Sym $1)}
+  | Constant {ConstantPattern UnspecifiedType $1}
+  | "(" Pattern ":" TypeExpr ")" {let theType = $4
                                   in ParenPattern theType ($2 & patType .~ theType)}
-  | "(" Pattern ")" {ParenPattern Nothing $2}
-  | "[" SymList "]" {ListPattern Nothing (fmap Var $2)}
-  | downvar SymList {FuncPattern Nothing (Sym $1) $2}
+  | "(" Pattern ")" {ParenPattern UnspecifiedType $2}
+  | "[" SymList "]" {ListPattern UnspecifiedType (fmap Var $2)}
+  | downvar SymList {FuncPattern UnspecifiedType (Sym $1) $2}
   -- | orpat
 
 
