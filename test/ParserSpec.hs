@@ -24,23 +24,23 @@ parserSpec = do
         testParser "x * f y -1" ((V "x" :* (FunApply "f" [V "y"])) :- (IntC 1))
         testParser "x - f y *1" (V "x" :- ((FunApply "f" [V "y"]) :* (IntC 1)))
         
-        testParser "let eu = 4" (Let (VarPattern Nothing "eu") (Constant (IntVal 4)))
-        testParser "let rec f x = x*x*x" (LetRec (FuncPattern Nothing "f" ["x"]) ((V "x" :* V "x") :* V "x"))
-        testParser "let (eu:int) = 4" (Let (ParenPattern (Just ocamlInt) (VarPattern (Just ocamlInt) "eu")) (Constant (IntVal 4)))
-        testParser "let rec eu = 4" (LetRec (VarPattern Nothing "eu") (Constant (IntVal 4)))
+        testParser "let eu = 4" (Let (VarPattern UnspecifiedType "eu") (Constant (IntVal 4)))
+        testParser "let rec f x = x*x*x" (LetRec (FuncPattern UnspecifiedType "f" ["x"]) ((V "x" :* V "x") :* V "x"))
+        testParser "let (eu:int) = 4" (Let (ParenPattern ocamlInt (VarPattern ocamlInt "eu")) (Constant (IntVal 4)))
+        testParser "let rec eu = 4" (LetRec (VarPattern UnspecifiedType "eu") (Constant (IntVal 4)))
         testParser "let rec (eu : int  ) = 4"
-            (LetRec (ParenPattern (Just ocamlInt) (VarPattern (Just ocamlInt) "eu")) (IntC 4))
+            (LetRec (ParenPattern ocamlInt (VarPattern ocamlInt "eu")) (IntC 4))
         testParser "if x then y else z"
             (IfThenElse (V "x") (V "y") (V "z"))
         testParser "let rec fib x = if x<=1 then 1 else fib (x-1)+fib(x-2)"
-            (LetRec (FuncPattern Nothing "fib" ["x"])
+            (LetRec (FuncPattern UnspecifiedType "fib" ["x"])
                     (IfThenElse ((V "x") :<= (IntC 1))
                      (IntC 1)
                      ((FunApply (Sym "fib") [(Paren $ V "x" :- IntC 1)])
                       :+
                       (FunApply (Sym "fib") [(Paren $ V "x" :- IntC 2)]))))
         testParser "let f a b = a = b"
-            (Let (FuncPattern Nothing "f" [Sym "a", Sym "b"])
+            (Let (FuncPattern UnspecifiedType "f" [Sym "a", Sym "b"])
              ((V "a") :== (V "b")))
         testParser "type hoge = Hoge" (TypeDecl "hoge" [DataCnstr "Hoge" []])
         testParser "type hoge = Hoge of hoge"
@@ -61,14 +61,14 @@ parserSpec = do
               DataCnstr "Divide" [(TypeAtom "expr"), (TypeAtom "expr")],
               DataCnstr "Value" [TypeAtom "string"]])
         testParser "let main = print_int 42"
-            (Let (VarPattern Nothing (Sym "main")) (FunApply (Sym "print_int") [(IntC 42)]))
+            (Let (VarPattern UnspecifiedType (Sym "main")) (FunApply (Sym "print_int") [(IntC 42)]))
         testParser "match x with |1 -> true |2 ->false"
-            (Match (V "x") [(ConstantPattern Nothing (IntVal 1), (Constant(BoolVal True))),
-                            (ConstantPattern Nothing (IntVal 2), (Constant(BoolVal False)))])
+            (Match (V "x") [(ConstantPattern UnspecifiedType (IntVal 1), (Constant(BoolVal True))),
+                            (ConstantPattern UnspecifiedType (IntVal 2), (Constant(BoolVal False)))])
         testParser "let f x y = x*y in f"
             (LetIn
               (FuncPattern
-               Nothing
+               UnspecifiedType
                (Sym "f") [Sym "x", Sym "y"])
               ((V "x") :* (V "y"))
               (V "f"))
