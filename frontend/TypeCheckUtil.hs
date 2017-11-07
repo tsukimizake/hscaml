@@ -22,7 +22,7 @@ initialRenameState :: RenameState
 initialRenameState = RenameState {_counter=M.empty, _renameStack=M.empty}
 
 unwrapSym :: Sym -> Name
-unwrapSym s = s ^. Types.name
+unwrapSym s = s ^. _name
 
 pushAndRenameSym :: Name -> State RenameState Name
 pushAndRenameSym s = do

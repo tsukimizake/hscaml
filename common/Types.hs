@@ -9,7 +9,7 @@ import Data.Text (Text)
 type Name = Text
 
 data Sym = Sym {
-    _symName :: Name
+    __name :: Name
 } deriving(Show, Eq, Ord)
 
 data Value = IntVal Int
@@ -152,25 +152,25 @@ pattern l :%: r = TInfixOpExpr l Mod r (TypeAtom "int" ::-> TypeAtom "int" ::-> 
 data Statement = Statement [Expr] deriving (Show, Eq)
 
 data Pattern = VarPattern {
-    _patType :: TypeExpr,
-    _sym :: Sym
+    __patType :: TypeExpr,
+    __sym :: Sym
 }| ConstantPattern {
-    _patType :: TypeExpr,
-    _val :: Value
+    __patType :: TypeExpr,
+    __val :: Value
 }| ParenPattern {
-     _patType :: TypeExpr,
-     _pat :: Pattern
+    __patType :: TypeExpr,
+    __pat :: Pattern
 }| ListPattern {
-     _patType :: TypeExpr,
-     _exprs :: [Expr]
+    __patType :: TypeExpr,
+    __exprs :: [Expr]
 }| FuncPattern {
-    _patType :: TypeExpr,
-    _sym :: Sym,
-    _args :: [Sym]
+    __patType :: TypeExpr,
+    __sym :: Sym,
+    __args :: [Sym]
 }| OrPattern{
-    _patType :: TypeExpr,
-    _left :: Pattern,
-    _right :: Pattern
+    __patType :: TypeExpr,
+    __left :: Pattern,
+    __right :: Pattern
 } deriving (Show, Eq, Ord)
 
 data Comp = LessThan | LessThanEq | Equal | GreaterThan | GreaterThanEq deriving (Show, Eq, Ord)
@@ -183,7 +183,7 @@ data InfixOp = Mul | Plus | Minus | Div
              deriving(Show, Eq, Ord)
 
 
-makeFields ''Sym
+makeLenses ''Sym
 makePrisms ''Expr
 makeClassy ''TypeExpr
 makeLenses ''Pattern

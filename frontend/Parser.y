@@ -151,9 +151,10 @@ SymList :: {[Sym]}
 
 Pattern :: {Pattern}
   : downvar {VarPattern UnspecifiedType (Sym $1)}
+
   | Constant {ConstantPattern UnspecifiedType $1}
   | "(" Pattern ":" TypeExpr ")" {let theType = $4
-                                  in ParenPattern theType ($2 & patType .~ theType)}
+                                  in ParenPattern theType ($2 & _patType .~ theType)}
   | "(" Pattern ")" {ParenPattern UnspecifiedType $2}
   | "[" SymList "]" {ListPattern UnspecifiedType (fmap Var $2)}
   | downvar SymList {FuncPattern UnspecifiedType (Sym $1) $2}
