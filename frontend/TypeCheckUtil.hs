@@ -105,7 +105,7 @@ mapMExpr _ (TypeDecl e1 e2) = pure $ TypeDecl e1 e2
 -- in let x1 = 1
 -- in x1
 renameSymsByScope :: Expr -> Expr
-renameSymsByScope e = evalState (impl e) initialRenameState
+renameSymsByScope expr = evalState (impl expr) initialRenameState
   where
     impl :: Expr -> State RenameState Expr
     impl (V s) = do

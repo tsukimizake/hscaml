@@ -21,14 +21,15 @@ data TypeExpr = TypeAtom Text
               | TypeExpr ::-> TypeExpr
               | TypeExpr ::* TypeExpr
               | TypeExpr ::+ TypeExpr
+              | ParenTypeExpr TypeExpr
               | UnspecifiedType
               -- | TypeVar Text -- TODO:多相型
               deriving(Show, Eq, Ord)
 
 infixr ::->
 
-data CompileError = TypeError String
-                  | ParseError String -- TODO
+data CompileError = TypeError Text
+                  | ParseError Text -- TODO
                   deriving (Show)
                   
 data DataCnstr = DataCnstr Name [TypeExpr]

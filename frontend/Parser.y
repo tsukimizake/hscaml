@@ -164,6 +164,7 @@ Pattern :: {Pattern}
 TypeExpr :: {TypeExpr}
   : downvar {TypeAtom $1}
   | TypeExpr "->" TypeExpr {$1 ::-> $3}
+  | "(" TypeExpr ")" {ParenTypeExpr $2}
   | TypeExpr "*" TypeExpr {$1 ::* $3}
   | TypeExpr "|" TypeExpr {$1 ::+ $3}
 
