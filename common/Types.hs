@@ -186,14 +186,14 @@ data InfixOp = Mul | Plus | Minus | Div
 
 makeLenses ''Sym
 makePrisms ''Expr
-makeClassy ''TypeExpr
+makeClassyFor "HasTypeExpr" "_typeExpr" [] ''TypeExpr
 makeLenses ''Pattern
 makeLenses ''TExpr
 makeClassyPrisms ''TExpr
 
 instance HasTypeExpr TExpr where
-    typeExpr :: Lens' TExpr TypeExpr
-    typeExpr = lens getter setter
+    _typeExpr :: Lens' TExpr TypeExpr
+    _typeExpr = lens getter setter
       where
         getter :: TExpr -> TypeExpr
         getter (TConstant _ x)= x

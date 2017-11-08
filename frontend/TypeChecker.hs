@@ -17,15 +17,15 @@ import Data.Monoid
 
 data TypeRestrict =
     OpType {
-        _exp :: InfixOp,
-        _theType :: TypeExpr
+        __exp :: InfixOp,
+        __theType :: TypeExpr
     }|
     SymType {
-        _name :: Name,
-        _theType :: TypeExpr
+        __sym :: Sym,
+        __theType :: TypeExpr
     }|
     TypeEq{
-        _names :: [Name]
+        __syms :: [Sym]
 } deriving (Show, Ord, Eq)
 
 makeLenses ''TypeRestrict
@@ -54,7 +54,7 @@ instance AsTExpr Expr where
         toTExpr :: Expr -> Either Expr TExpr
         toTExpr e =
             let te = initialTypeInfer e
-                tet = te ^. typeExpr
+                tet = te ^. _typeExpr
             in case tet of
                    UnspecifiedType -> Left e
                    _ -> Right te
