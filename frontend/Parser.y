@@ -52,6 +52,8 @@ downvar {DownTokenVar $$}
 "false" {TokenFalse}
 "match" {TokenMatch}
 "with" {TokenWith}
+"begin" {TokenBegin}
+"end" {TokenEnd}
 ";;" {TokenDoubleSemicolon}
 %right "="
 %left "+" "-" "+." "-."
@@ -103,6 +105,7 @@ MatchPat :: {(Pattern, Expr)}
 
 ArgExpr :: {Expr}
   : "(" Expr ")" {Paren $2}
+  | "begin" Expr "end" {BegEnd $2}
   | downvar {V $1}
   | Constant {Constant $1}
 
