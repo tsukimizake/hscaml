@@ -15,6 +15,7 @@ import Control.Lens hiding ((:<), (:>))
 int {TokenInt $$}
 upvar {UpperTokenVar $$}
 downvar {DownTokenVar $$}
+qvar {QuotedTokenVar $$}
 "let" {TokenLet}
 "rec" {TokenRec}
 "in"  {TokenIn}
@@ -166,6 +167,7 @@ Pattern :: {Pattern}
 
 TypeExpr :: {TypeExpr}
   : downvar {TypeAtom $1}
+  | qvar {TypeVar $1}
   | TypeExpr "->" TypeExpr {$1 ::-> $3}
   | "(" TypeExpr ")" {ParenTypeExpr $2}
   | TypeExpr "*" TypeExpr {$1 ::* $3}
@@ -178,7 +180,7 @@ parseStatement = stmtParser . alexScanTokens
 
 parseExpr :: String -> Expr
 parseExpr = exprParser . alexScanTokens
-  
+
 parseError tok = error (show tok)
 
 

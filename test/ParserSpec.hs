@@ -23,8 +23,9 @@ parserSpec = do
         testParser "x*y-1" (((V "x") :* (V "y")) :- (IntC 1))
         testParser "x * f y -1" ((V "x" :* (FunApply "f" [V "y"])) :- (IntC 1))
         testParser "x - f y *1" (V "x" :- ((FunApply "f" [V "y"]) :* (IntC 1)))
-        
+
         testParser "let eu = 4" (Let (VarPattern UnspecifiedType "eu") (Constant (IntVal 4)))
+        testParser "let (eu:'a) = 4" (Let (ParenPattern (TypeVar "'a") (VarPattern (TypeVar "'a") "eu")) (IntC 4))
         testParser "let rec f x = x*x*x" (LetRec (FuncPattern UnspecifiedType "f" ["x"]) ((V "x" :* V "x") :* V "x"))
         testParser "let (eu:int) = 4" (Let (ParenPattern ocamlInt (VarPattern ocamlInt "eu")) (Constant (IntVal 4)))
         testParser "let rec eu = 4" (LetRec (VarPattern UnspecifiedType "eu") (Constant (IntVal 4)))

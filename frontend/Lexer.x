@@ -4,14 +4,13 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures    #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches        #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports        #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing        #-}
 {-# OPTIONS_GHC -fno-warn-tabs                  #-}
 {-# OPTIONS_GHC -funbox-strict-fields           #-}
 
 module Lexer (alexScanTokens)
 
 where
-import Prelude 
+import Prelude
 import Data.Text hiding (map, take)
 import Token
 }
@@ -44,7 +43,7 @@ tokens :-
   [\]]  {tok TokenCBracket}
   [&]   {tok TokenAnd}
   [\<] {tok TokenLT}
-  [\>] {tok TokenGT}  
+  [\>] {tok TokenGT}
   "<=" {tok TokenLTEq}
   ">=" {tok TokenGTEq}
   ":"  {tok TokenColon}
@@ -104,8 +103,6 @@ tokens :-
   when     {tok TokenWhen}
   while     {tok TokenWhile}
   with     {tok TokenWith}
-  tokenvar     {tokText UpperTokenVar}
-  okenvar     {tokText DownTokenVar}
   plus     {tok TokenPlus}
   minus     {tok TokenMinus}
   times     {tok TokenMult}
@@ -115,6 +112,7 @@ tokens :-
 -- {tok TokenEOF}
 $uppercase [$alpha $digit \_ \']*         { tokText   UpperTokenVar }
 $downcase  [$alpha $digit \_ \']*         { tokText   DownTokenVar }
+' [$alpha $digit \_ \']*         { tokText   QuotedTokenVar }
 
 {
 

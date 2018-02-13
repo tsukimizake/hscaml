@@ -23,7 +23,7 @@ data TypeExpr = TypeAtom Text
               | TypeExpr ::+ TypeExpr
               | ParenTypeExpr TypeExpr
               | UnspecifiedType
-              -- | TypeVar Text -- TODO:多相型
+              | TypeVar Text
               deriving(Show, Eq, Ord)
 
 infixr ::->
@@ -31,7 +31,7 @@ infixr ::->
 data CompileError = TypeError Text
                   | ParseError Text -- TODO
                   deriving (Show)
-                  
+
 data DataCnstr = DataCnstr Name [TypeExpr]
                  deriving (Show, Eq, Ord)
 
@@ -227,5 +227,3 @@ instance HasTypeExpr TExpr where
         setter (TLetRec e f _) x = TLetRec e f x
         setter (TLetIn e f g _) x = TLetIn e f g x
         setter (TTypeDecl e f _) x = TTypeDecl e f x
-
-
