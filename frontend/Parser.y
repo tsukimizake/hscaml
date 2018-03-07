@@ -121,11 +121,20 @@ ArgExprList :: {[Expr]}
 
 -- type a = A of int * int
 -- type a = A of (int -> int)
--- type a = | A of int | B of int
--- todo: 型引数
+-- type a = A of int | B of int
+-- type 'a list = Nil | Cons 'a 'a list
 TypeDecl :: {Expr}
 TypeDecl
   : "type" downvar "=" DataCnstrDecls {TypeDecl $2 $4}
+  | "type" TypeArgs downvar "=" DataCnstrDecls  {TypeDecl $3 $5}
+
+TypeArgs :: {[TypeExpr]}
+  : qvar {[TypeVar $1]}
+  | qvar TypeArgs {TypeVar $1 : $2}
+
+TypeApplication :: {TypeExpr}
+TypeApplication
+  : TypeArgs downvar {TypeApplication $1 (TypeAtom $2)}
 
 DataCnstrDecls :: {[DataCnstr]}
   : DataCnstrDecl {[$1]}
@@ -143,6 +152,8 @@ DataCnstrArgs
 DataCnstrArg :: {TypeExpr}
 DataCnstrArg
   : downvar {TypeAtom $1}
+  | qvar {TypeVar $1}
+  | TypeApplication {$1}
   | DataCnstrArg "->" DataCnstrArg {$1 ::-> $3}
 
 DownvarList :: {[Name]}
@@ -161,7 +172,7 @@ Pattern :: {Pattern}
                                   in ParenPattern theType ($2 & _patType .~ theType)}
   | "(" Pattern ")" {ParenPattern UnspecifiedType $2}
   | "[" SymList "]" {ListPattern UnspecifiedType (fmap Var $2)}
-  | downvar SymList {FuncPattern UnspecifiedType (Sym $1) $2}
+  | downvar SymList {FuncPattern UnspecifiedType (Sym $1) (zip $2 (repeat UnspecifiedType))}
   -- | orpat
 
 

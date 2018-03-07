@@ -60,6 +60,7 @@ data Token
  | TokenInt    Int
  | UpperTokenVar Text
  | DownTokenVar Text
+ | QuotedTokenVar Text
  | TokenPlus
  | TokenMinus
  | TokenMult

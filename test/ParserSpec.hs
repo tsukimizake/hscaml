@@ -26,7 +26,7 @@ parserSpec = do
 
         testParser "let eu = 4" (Let (VarPattern UnspecifiedType "eu") (Constant (IntVal 4)))
         testParser "let (eu:'a) = 4" (Let (ParenPattern (TypeVar "'a") (VarPattern (TypeVar "'a") "eu")) (IntC 4))
-        testParser "let rec f x = x*x*x" (LetRec (FuncPattern UnspecifiedType "f" ["x"]) ((V "x" :* V "x") :* V "x"))
+        testParser "let rec f x = x*x*x" (LetRec (FuncPattern UnspecifiedType "f" [("x", UnspecifiedType)]) ((V "x" :* V "x") :* V "x"))
         testParser "let (eu:int) = 4" (Let (ParenPattern ocamlInt (VarPattern ocamlInt "eu")) (Constant (IntVal 4)))
         testParser "let rec eu = 4" (LetRec (VarPattern UnspecifiedType "eu") (Constant (IntVal 4)))
         testParser "let rec (eu : int  ) = 4"
@@ -34,14 +34,14 @@ parserSpec = do
         testParser "if x then y else z"
             (IfThenElse (V "x") (V "y") (V "z"))
         testParser "let rec fib x = if x<=1 then 1 else fib (x-1)+fib(x-2)"
-            (LetRec (FuncPattern UnspecifiedType "fib" ["x"])
+            (LetRec (FuncPattern UnspecifiedType "fib" [("x", UnspecifiedType)])
                     (IfThenElse ((V "x") :<= (IntC 1))
                      (IntC 1)
                      ((FunApply (Sym "fib") [(Paren $ V "x" :- IntC 1)])
                       :+
                       (FunApply (Sym "fib") [(Paren $ V "x" :- IntC 2)]))))
         testParser "let f a b = a = b"
-            (Let (FuncPattern UnspecifiedType "f" [Sym "a", Sym "b"])
+            (Let (FuncPattern UnspecifiedType "f" [(Sym "a", UnspecifiedType), (Sym "b", UnspecifiedType)])
              ((V "a") :== (V "b")))
         testParser "type hoge = Hoge" (TypeDecl "hoge" [DataCnstr "Hoge" []])
         testParser "type hoge = Hoge of hoge"
@@ -61,6 +61,11 @@ parserSpec = do
               DataCnstr "Times" [(TypeAtom "expr"), (TypeAtom "expr")],
               DataCnstr "Divide" [(TypeAtom "expr"), (TypeAtom "expr")],
               DataCnstr "Value" [TypeAtom "string"]])
+        testParser "type 'a list = Nil | Cons of 'a * 'a list"
+            (TypeDecl "list"
+                      [DataCnstr "Nil" [],
+                       DataCnstr "Cons" [(TypeVar "'a"), TypeApplication [(TypeVar "'a")] (TypeAtom "list")]]
+                      )
         testParser "let main = print_int 42"
             (Let (VarPattern UnspecifiedType (Sym "main")) (FunApply (Sym "print_int") [(IntC 42)]))
         testParser "match x with |1 -> true |2 ->false"
@@ -70,9 +75,11 @@ parserSpec = do
             (LetIn
               (FuncPattern
                UnspecifiedType
-               (Sym "f") [Sym "x", Sym "y"])
+               (Sym "f") [(Sym "x", UnspecifiedType),  (Sym "y", UnspecifiedType)])
               ((V "x") :* (V "y"))
               (V "f"))
     describe "parseStatement" $ do
         it  "hoge ;; huga ;; " $ parseStatement "hoge ;; huga ;; "
             `shouldBe` (Statement [V "hoge", V "huga"])
+    -- fun x -> x+1
+    -- fun x y -> x + y

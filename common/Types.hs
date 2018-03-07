@@ -1,5 +1,4 @@
 {-# OPTIONS -Wall #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE InstanceSigs, TemplateHaskell, PatternSynonyms, MultiParamTypeClasses, FunctionalDependencies, TypeSynonymInstances, OverloadedStrings #-}
 module Types where
 
@@ -24,7 +23,8 @@ data TypeExpr = TypeAtom Text
               | ParenTypeExpr TypeExpr
               | UnspecifiedType
               | TypeVar Text
-              deriving(Show, Eq, Ord)
+              | TypeApplication [TypeExpr] TypeExpr
+             deriving(Show, Eq, Ord)
 
 infixr ::->
 
@@ -144,13 +144,14 @@ pattern l :>: r = TInfixOpExpr l (Compare GreaterThan) r (TypeAtom "int" ::-> Ty
 pattern (:>=:) :: TExpr -> TExpr -> TExpr
 pattern l :>=: r = TInfixOpExpr l (Compare GreaterThanEq) r (TypeAtom "int" ::-> TypeAtom "int" ::-> TypeAtom "int")
 pattern (:&&:) :: TExpr -> TExpr -> TExpr
-pattern l :&&: r = TInfixOpExpr l BoolAnd r (TypeAtom "bool" ::-> TypeAtom "bool" ::-> TypeAtom "bool") 
+pattern l :&&: r = TInfixOpExpr l BoolAnd r (TypeAtom "bool" ::-> TypeAtom "bool" ::-> TypeAtom "bool")
 pattern (:||:) :: TExpr -> TExpr -> TExpr
 pattern l :||: r = TInfixOpExpr l BoolOr r (TypeAtom "bool" ::-> TypeAtom "bool" ::-> TypeAtom "bool")
 pattern (:%:) :: TExpr -> TExpr -> TExpr
 pattern l :%: r = TInfixOpExpr l Mod r (TypeAtom "int" ::-> TypeAtom "int" ::-> TypeAtom "int")
 
 data Statement = Statement [Expr] deriving (Show, Eq)
+data TStatement = TStatement [TExpr] deriving (Show, Eq)
 
 data Pattern = VarPattern {
     __patType :: TypeExpr,
@@ -167,7 +168,7 @@ data Pattern = VarPattern {
 }| FuncPattern {
     __patType :: TypeExpr,
     __sym :: Sym,
-    __args :: [Sym]
+    __args :: [(Sym, TypeExpr)]
 }| OrPattern{
     __patType :: TypeExpr,
     __left :: Pattern,
@@ -181,7 +182,7 @@ data InfixOp = Mul | Plus | Minus | Div
              | BoolAnd
              | BoolOr
              | Mod
-             deriving(Show, Eq, Ord)
+             deriving (Show, Eq, Ord)
 
 
 makeLenses ''Sym
