@@ -1,10 +1,10 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE TemplateHaskell, OverloadedStrings #-}
-module TypeCheckUtil(renameSymsByScope, mapMExpr) where
+module TypeCheckUtil where
+import Types
 import Control.Monad.State.Strict
 import Data.Map as M
 import Control.Lens
-import Types
 import qualified Data.Text as T hiding (head)
 import Data.Maybe
 import Data.Monoid
@@ -132,28 +132,37 @@ renameSymsByScope expr = evalState (impl expr) initialRenameState
 
     impl (Let (FuncPattern t (Sym s) xs) e) = do
         s' <- pushAndRenameSym s
-        argsText' <- mapM (pushAndRenameSym . unwrapSym) xs
-        let args' = fmap Sym argsText'
+        args' <- forM xs $ \(s, t) -> do
+          s' <- pushAndRenameSym $ unwrapSym $ s
+          pure (Sym s', t)
         e' <- impl e
         popRenameStack s
-        mapM_ (popRenameStack . unwrapSym) xs
+        forM_ xs $ \(s, t) -> do
+          s' <- popRenameStack . unwrapSym $ s
+          pure (s', t)
         pure $ Let (FuncPattern t (Sym s') (args')) e'
     impl (LetRec (FuncPattern t (Sym s) xs) e) = do
         s' <- pushAndRenameSym s
-        argsText' <- mapM (pushAndRenameSym . unwrapSym) xs
-        let args' = fmap Sym argsText'
+        args' <- forM xs $ \(s, t) -> do
+              s' <- pushAndRenameSym $ unwrapSym $ s
+              pure (Sym s', t)
         e' <- impl e
         popRenameStack s
-        mapM_ (popRenameStack . unwrapSym) xs
-        pure $ LetRec (FuncPattern t (Sym s') (args')) e'
+        forM_ xs $ \(s, t) -> do
+          s' <- popRenameStack . unwrapSym $ s
+          pure (s', t)
+        pure $ LetRec (FuncPattern t (Sym s') args') e'
 
     impl (LetIn (FuncPattern t (Sym s) xs) e1 e2) = do
         s' <- pushAndRenameSym s
-        argsText' <- mapM (pushAndRenameSym . unwrapSym) xs
-        let args' = fmap Sym argsText'
+        args' <- forM xs $ \(s, t) -> do
+              s' <- pushAndRenameSym $ unwrapSym $ s
+              pure (Sym s', t)
         e1' <- impl e1
         e2' <- impl e2
         popRenameStack s
-        mapM_ (popRenameStack . unwrapSym) xs
+        forM_ xs $ \(s, t) -> do
+          s' <- popRenameStack . unwrapSym $ s
+          pure (s', t)
         pure $ LetIn (FuncPattern t (Sym s') (args')) e1' e2'
     impl e = mapMExpr impl e

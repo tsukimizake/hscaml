@@ -1,151 +1,218 @@
 {-# OPTIONS -Wall #-}
-{-# OPTIONS_GHC -fno-warn-name-shadowing, -fno-warn-orphans #-}
-{-# LANGUAGE OverloadedStrings, TemplateHaskell, GADTs, FlexibleContexts #-}
-module TypeChecker (typeCheck, renameSymsByScope) where
-import Control.Lens
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TypeOperators     #-}
+module TypeChecker where
+
+import Control.Zipper
 import Types
 import OCamlType
-import Data.Set as S
-import Data.Map as M
-import qualified Data.Text as T hiding (head)
-import Control.Monad.State.Strict
-import Control.Monad.Trans.Either as E
-import Control.Monad
-import Control.Monad.Skeleton
-import RenameSymsByScope
+import Control.Lens
+import Control.Monad.State
+import Data.Text
 import Data.Monoid
+import TypeCheckUtil
+import Data.Map as M
+import Data.Maybe
+import Data.Set as S
 
-data TypeRestrict =
-    OpType {
-        __exp :: InfixOp,
-        __theType :: TypeExpr
-    }|
-    SymType {
-        __sym :: Sym,
-        __theType :: TypeExpr
-    }|
-    TypeEq{
-        __syms :: [Sym]
-} deriving (Show, Ord, Eq)
+textShow :: (Show a) => a -> Text
+textShow = pack . show
 
-makeLenses ''TypeRestrict
+type SymName = Text
+type TypeName = Text
+data MangleTypeVarStat = MangleTypeVarStat{
+  __genSymNumber :: Int,
+  __varName :: Map SymName TypeName
+  }deriving(Show)
+
+initialMangleTypeVarStat = MangleTypeVarStat 0 M.empty
+
+type MangleTypeVarM a = State MangleTypeVarStat a
+makeLenses ''MangleTypeVarStat
+
+-- 違うTypeExpr内の同じTypeVarは違う型であってほしいのでそこを別の名前にする。
+-- 下の[全ての型式のtypevarをリネームする前処理が必要(TODO)]がこれの予定
+renameTypeVarByTypeExpr :: MangleTypeVarM Expr
+renameTypeVarByTypeExpr = undefined
+
+-- もう見たsymなら同じTypeVarに、初めて見たsymなら新しいtypevarをつける(symはrenameTypeVariablesで同じ名なら同じブツだと保証済 (Value Constraintsは知らん))
+-- TODO let f (x:'a) (y:'a) = x*y みたいのどうすんだ？ 同じ型式の中でだけ同じtypevarは同じ。ということで、全ての型式のtypevarをリネームする前処理が必要(TODO)
+genTypeVar ::Maybe SymName -> Maybe TypeName -> MangleTypeVarM TypeExpr
+genTypeVar symm Nothing = genTypeVar symm (Just "")
+genTypeVar symm (Just tname)
+  | symm == Nothing = do
+      typename <- genNewTypeName tname
+      pure $ TypeVar typename
+  | otherwise = do
+      let sym = fromJust symm
+      vars <- use _varName
+      let lookedup = M.lookup sym vars
+      if (isJust lookedup)
+        then do
+        let lookedup' = fromJust lookedup
+        pure $ TypeVar lookedup'
+        else do
+        typename <- genNewTypeName tname
+        _varName %= M.insert sym typename
+        pure $ TypeVar typename
+          where
+            genNewTypeName defaultName = do
+              n <- use _genSymNumber
+              _genSymNumber .= (n+1)
+              pure $ "_" <> defaultName <> textShow n
+
+symToText :: Sym -> Text
+symToText (Sym x) = x
+
+-- とりあえずプリミティブや即値やアノテーション書かれたやつにだけ型を付ける, あとtypevarのリネーム
+initialTypeInfer :: Expr -> MangleTypeVarM TExpr
+initialTypeInfer (Constant x@(IntVal _)) = pure $ TConstant x ocamlInt
+initialTypeInfer (Constant x@(BoolVal _)) = pure $ TConstant x ocamlBool
+initialTypeInfer (Var x) = do
+  t <- genTypeVar (Just $ symToText x) Nothing
+  pure $ TVar x t
+initialTypeInfer (Paren e) = do
+  e' <- initialTypeInfer e
+  t <- genTypeVar Nothing Nothing
+  pure $ TParen e' t
+initialTypeInfer (InfixOpExpr e f g) = do
+  e' <- initialTypeInfer e
+  g' <- initialTypeInfer g
+  t <- genTypeVar Nothing Nothing
+  pure $ TInfixOpExpr e' f g' t
+initialTypeInfer (BegEnd e) = do
+  e' <- initialTypeInfer e
+  t <- genTypeVar Nothing Nothing
+  pure $ TBegEnd e' t
+initialTypeInfer (MultiExpr e) = do
+  e' <- mapM initialTypeInfer e
+  t <- genTypeVar Nothing Nothing
+  pure $ TMultiExpr e' t
+initialTypeInfer (Constr e) = do
+  e' <- initialTypeInfer e
+  t <- genTypeVar Nothing Nothing
+  pure $ TConstr e' t
+initialTypeInfer (IfThenElse e f g) = do
+  e' <- initialTypeInfer e
+  f' <- initialTypeInfer f
+  g' <- initialTypeInfer g
+  t <- genTypeVar Nothing Nothing
+  pure $ TIfThenElse e' f' g' t
+initialTypeInfer (Match e f) = do
+  e' <- initialTypeInfer e
+  f' <- mapM (mapM (initialTypeInfer)) f :: MangleTypeVarM [(Pattern, TExpr)]
+  t <- genTypeVar Nothing Nothing
+  pure $ TMatch e' f' t
+initialTypeInfer (While e f) = do
+  e' <- initialTypeInfer e
+  f' <- initialTypeInfer f
+  t <- genTypeVar Nothing Nothing
+  pure $ TWhile e' f' t
+initialTypeInfer (FunApply e f) = do
+  f' <- mapM initialTypeInfer f
+  t <- genTypeVar Nothing Nothing
+  pure $ TFunApply e f' t
+initialTypeInfer (Let e f) = do
+  f' <- initialTypeInfer f
+  t <- genTypeVar Nothing Nothing
+  pure $ TLet e f' t
+initialTypeInfer (LetRec e f) = do
+  f' <- initialTypeInfer f
+  t <- genTypeVar Nothing Nothing
+  pure $ TLetRec e f' t
+initialTypeInfer (LetIn pat f g) = do
+  pat' <- nameTypeVarInPat pat
+  f' <- initialTypeInfer f
+  g' <- initialTypeInfer g
+  t <- genTypeVar Nothing Nothing
+  pure $ TLetIn pat' f' g' t
+    where
+      nameTypeVarInPat :: Pattern -> MangleTypeVarM Pattern
+      nameTypeVarInPat (VarPattern t s) = do
+        t' <- genTypeVar (Just $ symToText s) Nothing
+        pure $ VarPattern t' s
+      nameTypeVarInPat (FuncPattern t f xs) = do
+        t' <- genTypeVar (Just $ symToText f) Nothing
+        xs' <- forM xs $ \(s, t) -> do
+          (VarPattern t' _) <- nameTypeVarInPat $ VarPattern t s
+          pure (s, t')
+        pure $ FuncPattern t' f xs'
+initialTypeInfer (TypeDecl e f) = do
+  t <- genTypeVar Nothing Nothing
+
+  pure $ TTypeDecl e f t
+
+initialTypeInferStmt :: Statement -> MangleTypeVarM TStatement
+initialTypeInferStmt (Statement exprs)= do
+  texprs <- mapM initialTypeInfer exprs
+  pure $ TStatement texprs
+
+data TypeConstraint =
+  TypeEq{
+  __lhs :: TypeExpr,
+  __rhs :: TypeExpr
+  }|
+  TypeOfSym{
+  __symbol :: Sym,
+  __type :: TypeExpr
+  } deriving (Show, Ord, Eq)
+
+data TIStep =
+  TIStep{
+  __Expr :: TExpr,
+  __constraints :: [TypeConstraint]
+        } deriving(Show, Ord, Eq)
+
+makeLenses ''TypeConstraint
+
+collectTypeConstraintsStmt :: TStatement -> CollectTypeConstraintsM [TypeConstraint]
+collectTypeConstraintsStmt (TStatement exprs) = impl exprs
+  where
+    impl :: [TExpr] -> CollectTypeConstraintsM [TypeConstraint]
+    impl [] = pure []
+    impl (x:xs) = do
+      y <- collectTypeConstraints x
+      ys <- impl xs
+      return $ y ++ ys
+
+type CollectTypeConstraintsM a = State [TypeConstraint] a
+
+putTypeConstraint :: TypeConstraint -> CollectTypeConstraintsM ()
+putTypeConstraint tc = do
+  modify' ((:) tc)
+
+collectTypeConstraints :: TExpr -> CollectTypeConstraintsM [TypeConstraint]
+collectTypeConstraints (TLetIn pat impl body t) = do
+  collectFromPattern pat
+  get
+    where collectFromPattern :: Pattern -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncPatternのとき、そのシンボルの型を返す
+          collectFromPattern (VarPattern thetype sym) = do
+            let c = TypeOfSym sym thetype
+            putTypeConstraint $ c
+            pure $ Just c
+          collectFromPattern (FuncPattern t f args) = do
+            let c = TypeOfSym f t
+            putTypeConstraint $ c
+            forM_ args $ \(s, t) -> do
+              putTypeConstraint $ TypeOfSym s t
+            pure $ Just c
+          collectFromPattern (ParenPattern theType pat) = do
+            c <- collectFromPattern pat
+            case c of
+              Just (TypeOfSym s t) -> do
+                putTypeConstraint $ TypeEq t theType
+                pure Nothing
+              Nothing ->
+                pure Nothing
 
 
 
-instance AsTExpr Expr where
-    _TExpr  = prism toExpr toTExpr
-      where
-        toExpr :: TExpr -> Expr
-        toExpr (TConstant x _)= Constant x
-        toExpr (TVar x _) = Var x
-        toExpr (TParen x _) = Paren (toExpr x)
-        toExpr (TInfixOpExpr x y z _) = InfixOpExpr (toExpr x) y (toExpr z)
-        toExpr (TBegEnd x _) = BegEnd (toExpr x)
-        toExpr (TMultiExpr x _) = MultiExpr (fmap toExpr x)
-        toExpr (TConstr x _) = Constr (toExpr x)
-        toExpr (TIfThenElse x y z _) = IfThenElse (toExpr x) (toExpr y) (toExpr z)
-        toExpr (TMatch x y _) = Match (toExpr x) (fmap toExpr <$> y)
-        toExpr (TWhile x y _) = While (toExpr x) (toExpr y)
-        toExpr (TFunApply x y _) = FunApply x (fmap toExpr y)
-        toExpr (TLet x y _) = Let x (toExpr y)
-        toExpr (TLetRec x y _) = LetRec x (toExpr y)
-        toExpr (TLetIn x y z _) = LetIn x (toExpr y) (toExpr z)
-        toExpr (TTypeDecl x y _) = TypeDecl x y
-        toTExpr :: Expr -> Either Expr TExpr
-        toTExpr e =
-            let te = initialTypeInfer e
-                tet = te ^. _typeExpr
-            in case tet of
-                   UnspecifiedType -> Left e
-                   _ -> Right te
+collectTypeConstraints _ = pure []
+
 
 typeCheck :: Expr -> Either CompileError TExpr
-typeCheck = runTypeInfer . initialTypeInfer . renameSymsByScope
-  where
-    runTypeInfer :: TExpr -> Either CompileError TExpr
-    runTypeInfer x = do
-        let res = evalState (typeInfer x) initialRestriction
-        typedExprisValid res
-
--- とりあえずプリミティブや即値やアノテーション書かれたやつにだけ型を付ける
-initialTypeInfer :: Expr -> TExpr
-initialTypeInfer (Constant x@(IntVal _)) = TConstant x ocamlInt
-initialTypeInfer (Constant x@(BoolVal _)) = TConstant x ocamlBool
-initialTypeInfer (Var x) = TVar x UnspecifiedType
-initialTypeInfer (Paren e) = TParen (initialTypeInfer e) UnspecifiedType
-initialTypeInfer (InfixOpExpr e f g) = TInfixOpExpr
-                                       (initialTypeInfer e) f (initialTypeInfer g) UnspecifiedType
-initialTypeInfer (BegEnd e) = TBegEnd (initialTypeInfer e) UnspecifiedType
-initialTypeInfer (MultiExpr e) = TMultiExpr (fmap initialTypeInfer e) UnspecifiedType
-initialTypeInfer (Constr e) = TConstr (initialTypeInfer e) UnspecifiedType
-initialTypeInfer (IfThenElse e f g) = TIfThenElse (initialTypeInfer e) (initialTypeInfer f) (initialTypeInfer g) UnspecifiedType
-initialTypeInfer (Match e f) = TMatch (initialTypeInfer e) (fmap initialTypeInfer <$> f) UnspecifiedType
-initialTypeInfer (While e f) = TWhile (initialTypeInfer e) (initialTypeInfer f) UnspecifiedType
-initialTypeInfer (FunApply e f) = TFunApply e (fmap initialTypeInfer f) UnspecifiedType
-initialTypeInfer (Let e f) = TLet e (initialTypeInfer f) UnspecifiedType
-initialTypeInfer (LetRec e f) = TLetRec e (initialTypeInfer f) UnspecifiedType
-initialTypeInfer (LetIn e f g) = TLetIn e (initialTypeInfer f) (initialTypeInfer g) UnspecifiedType
-initialTypeInfer (TypeDecl e f) = TTypeDecl e f  UnspecifiedType
-
--- let x = 0
--- in let x = 1
--- in x
--- =>
--- let x0 = 0
--- in let x1 = 1
--- in x1
--- x1が元からあった時のためのgensymは後で
-
-
-
--- 最初から型がわかっている式の一覧
-initialRestriction :: Set TypeRestrict
-initialRestriction = S.fromList
-    [
-      OpType Mul (ocamlInt ::-> ocamlInt ::-> ocamlInt),
-      OpType Plus (ocamlInt ::-> ocamlInt ::-> ocamlInt),
-      OpType Minus (ocamlInt ::-> ocamlInt ::-> ocamlInt),
-      OpType Div (ocamlInt ::-> ocamlInt ::-> ocamlInt),
-      OpType MulDot (ocamlFloat ::-> ocamlFloat ::-> ocamlFloat),
-      OpType PlusDot (ocamlFloat ::-> ocamlFloat ::-> ocamlFloat),
-      OpType MinusDot (ocamlFloat ::-> ocamlFloat ::-> ocamlFloat),
-      OpType DivDot (ocamlFloat ::-> ocamlFloat ::-> ocamlFloat),
-      -- ToDo,Compareの型推論が効かない. 多相型を入れる必要があるか
-      OpType (Compare LessThan) (UnspecifiedType ::-> UnspecifiedType ::-> ocamlBool),
-      OpType (Compare LessThanEq) (UnspecifiedType ::-> UnspecifiedType ::-> ocamlBool),
-      OpType (Compare GreaterThan) (UnspecifiedType ::-> UnspecifiedType ::-> ocamlBool),
-      OpType (Compare GreaterThanEq) (UnspecifiedType ::-> UnspecifiedType ::-> ocamlBool),
-
-      OpType BoolAnd (UnspecifiedType ::-> UnspecifiedType ::-> ocamlBool),
-      OpType BoolOr (UnspecifiedType ::-> UnspecifiedType ::-> ocamlBool),
-      OpType Mod (UnspecifiedType ::-> UnspecifiedType ::-> ocamlBool)
-    ]
-
-typeInfer :: TExpr -> State (Set TypeRestrict) TExpr
-typeInfer = undefined
-
--- まずシンボルのリネームを先にやったほうがよいのでは？ やった
--- 型が付きうるのは、シンボル、演算子、式. 式はTExprに型が付くから、シンボルと演算子だけメモすればよい
--- letの右辺からの推論
--- let f x y = x*y
--- => f : int->int->int
--- => x, y : int
-
--- if 左辺 is Unspecified and 右辺 is Unspecified
--- 右辺を掘る
--- if 左辺 xor 右辺 is specified
--- specifyしてUnspecifiedだったほうを型情報Mapに入れる
--- if どっちもspecified
--- 整合チェック
--- patternからの推論
--- let (x:int) = a
--- => x : int
-
--- 多相型入ったらどうなるんだろーねー？
-
--- 全て型が付いているかどうかのチェック
-typedExprisValid :: TExpr -> Either CompileError TExpr
-typedExprisValid = undefined
-
-
-
+typeCheck e = do
+  let e' = renameSymsByScope e
+  pure $ (initialTypeInfer e') `evalState` initialMangleTypeVarStat
