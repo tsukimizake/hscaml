@@ -8,6 +8,8 @@ import Parser
 import TypeChecker
 import TypeCheckUtil
 import Control.Monad.State
+import Debug.Trace
+import Data.Set as S
 
 testTypeCheckExpr :: String -> TExpr -> Spec
 testTypeCheckExpr src ast = it src $ do
@@ -19,21 +21,37 @@ testTypeCheckExpr src ast = it src $ do
 typeCheckSpec :: Spec
 typeCheckSpec = do
   describe "renameSymsByScope" $ it "let x = 1 in let x = 2 in let x = 3 in x" $ do
-        (renameSymsByScope . parseExpr $ "let x = 1 in let x = 2 in let x = 3 in x")
-            `shouldBe` ((LetIn
-                        (VarPattern UnspecifiedType (Sym "_x_gen_0"))
-                        (IntC 1)
-                        (LetIn (VarPattern UnspecifiedType (Sym "_x_gen_1"))
-                         (IntC 2)
-                         (LetIn (VarPattern UnspecifiedType (Sym "_x_gen_2"))
-                          (IntC 3)
-                          (V "_x_gen_2")))) :: Expr)
-  describe "iniitalTypeInfer" $ it "let f x y = x*y in f" $ do
-      ((initialTypeInfer . renameSymsByScope . parseExpr $ "let f x y = x*y in f") `evalState` initialMangleTypeVarStat)
-        `shouldBe` (TLetIn
-                    (FuncPattern {__patType = TypeVar "_0", __sym = Sym {__name = "_f_gen_0"}, __args = [(Sym {__name = "_x_gen_0"}, TypeVar "_1"),(Sym {__name = "_y_gen_0"}, TypeVar "_2")]})
-                    (TInfixOpExpr (TVar (Sym {__name = "_x_gen_0"}) (TypeVar "_1")) Mul (TVar (Sym {__name = "_y_gen_0"}) (TypeVar "_2")) (TypeVar "_3"))
-                    (TVar (Sym {__name = "_f_gen_0"}) (TypeVar "_0")) (TypeVar "_4"))
+    (renameSymsByScope . parseExpr $ "let x = 1 in let x = 2 in let x = 3 in x")
+      `shouldBe` ((LetIn
+                    (VarPattern UnspecifiedType (Sym "_x_gen_0"))
+                    (IntC 1)
+                    (LetIn (VarPattern UnspecifiedType (Sym "_x_gen_1"))
+                      (IntC 2)
+                      (LetIn (VarPattern UnspecifiedType (Sym "_x_gen_2"))
+                      (IntC 3)
+                       (V "_x_gen_2")))) :: Expr)
+  describe "initialTypeInfer" $ it "let f x y = x*y in f" $ do
+    (initialTypeInfer . renameSymsByScope . parseExpr $ "let f x y = x*y in f") `evalState` initialMangleTypeVarStat
+      `shouldBe` (TLetIn
+                   (FuncPattern {__patType = TypeVar "_0", __sym = Sym {__name = "_f_gen_0"}, __args = [(Sym {__name = "_x_gen_0"}, TypeVar "_1"),(Sym {__name = "_y_gen_0"}, TypeVar "_2")]})
+                   (TInfixOpExpr (TVar (Sym {__name = "_x_gen_0"}) (TypeVar "_1")) Mul (TVar (Sym {__name = "_y_gen_0"}) (TypeVar "_2")) (TypeVar "_3"))
+                   (TVar (Sym {__name = "_f_gen_0"}) (TypeVar "_0")) (TypeVar "_4"))
+  describe "collectTypeInfo" $ it "let f x y = x*y in f" $ do
+    let expr = renameSymsByScope . parseExpr $ "let f x y = x*y in f"
+    let texpr = (initialTypeInfer expr) `evalState` initialMangleTypeVarStat
+    let constraints = (collectTypeConstraints texpr) `execState` initialCollectTypeConstaraintsState
+
+    constraints `shouldBe` S.fromList
+      [ TypeOfSym (Sym "_f_gen_0") (TypeVar "_0")
+      , TypeOfSym (Sym "_x_gen_0") (TypeVar "_1")
+      , TypeOfSym (Sym "_y_gen_0") (TypeVar "_2")
+      , TypeEq (TypeVar "_1" ::-> TypeVar "_2" ::-> TypeVar "_4") (TypeVar"_0")
+      , TypeEq (TypeVar "_1") ocamlInt
+      , TypeEq (TypeVar "_2") ocamlInt
+      , TypeEq (TypeVar "_3") ocamlInt
+      , TypeEq (TypeVar "_3") (TypeVar "_4")
+      ]
+
   describe "typecheck" $ do
     testTypeCheckExpr "let f x y = x*y in f"
       (TLetIn
