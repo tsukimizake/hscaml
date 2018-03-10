@@ -97,6 +97,55 @@ mapMExpr f (LetIn e1 e2 e3) = do
     pure $ LetIn e1 e2' e3'
 mapMExpr _ (TypeDecl e1 e2) = pure $ TypeDecl e1 e2
 
+-- mapMTExpr :: (Monad m) => (TExpr -> m TExpr) -> TExpr -> m TExpr
+-- mapMTExpr f x@(TConstant _ t) = f x
+-- mapMTExpr f x@(TVar _ t) = f x
+-- mapMTExpr f x@(TParen e t) = do
+--     e' <- f e
+--     pure $ f x
+-- mapMTExpr f (TInfixOpExpr e iop g t) = do
+--     e' <- f e
+--     g' <- f g
+--     pure $ TInfixOpExpr e' iop g' t
+-- mapMTExpr f (BegEnd e) = do
+--     e' <- f e
+--     pure $ BegEnd e'
+-- mapMTExpr f (TMultiExpr e t) = do
+--     e' <- mapM f e
+--     pure $ TMultiExpr e'
+-- mapMTExpr f (TConstr e t) = do
+--     e' <- f e
+--     pure $ TConstr e' t
+-- mapMTExpr f (TIfThenElse e1 e2 e3 t) = do
+--     e1' <- f e1
+--     e2' <- f e2
+--     e3' <- f e3
+--     pure $ TIfThenElse e1' e2' e3' t
+-- mapMTExpr f (Match e1 e2) = do
+--     e1' <- f e1
+--     e2' <- mapM (\(x, y) -> do
+--                      y' <- f y
+--                      pure (x, y')) e2
+--     pure $ Match e1' e2'
+-- mapMTExpr f (While e1 e2) = do
+--     e1' <- f e1
+--     e2' <- f e2
+--     pure $ While e1' e2'
+-- mapMTExpr f (FunApply e1 e2) = do
+--     e2' <- mapM f e2
+--     pure $ FunApply e1 e2'
+-- mapMTExpr f (Let e1 e2) =  do
+--     e2' <- f e2
+--     pure $ Let e1 e2'
+-- mapMTExpr f (LetRec e1 e2) =  do
+--     e2' <- f e2
+--     pure $ LetRec e1 e2'
+-- mapMTExpr f (LetIn e1 e2 e3) = do
+--     e2' <- f e2
+--     e3' <- f e3
+--     pure $ LetIn e1 e2' e3'
+-- mapMTExpr _ (TypeDecl e1 e2) = pure $ TypeDecl e1 e2
+
 -- let x = 0
 -- in let x = 1
 -- in x

@@ -16,7 +16,7 @@ import TypeCheckUtil
 import Data.Map as M
 import Data.Maybe
 import Data.Set as S
-
+import Debug.Trace
 textShow :: (Show a) => a -> Text
 textShow = pack . show
 
@@ -167,52 +167,85 @@ data TIStep =
 
 makeLenses ''TypeConstraint
 
-collectTypeConstraintsStmt :: TStatement -> CollectTypeConstraintsM [TypeConstraint]
-collectTypeConstraintsStmt (TStatement exprs) = impl exprs
-  where
-    impl :: [TExpr] -> CollectTypeConstraintsM [TypeConstraint]
-    impl [] = pure []
-    impl (x:xs) = do
-      y <- collectTypeConstraints x
-      ys <- impl xs
-      return $ y ++ ys
+collectTypeConstraintsStmt :: TStatement -> CollectTypeConstraintsM (S.Set TypeConstraint)
+collectTypeConstraintsStmt (TStatement exprs) = do
+  forM_ exprs $ \expr -> do
+    collectTypeConstraints expr
+  get
 
-type CollectTypeConstraintsM a = State [TypeConstraint] a
+type CollectTypeConstraintsM a = State (S.Set TypeConstraint) a
 
 putTypeConstraint :: TypeConstraint -> CollectTypeConstraintsM ()
 putTypeConstraint tc = do
-  modify' ((:) tc)
+  modify' (S.insert tc)
 
-collectTypeConstraints :: TExpr -> CollectTypeConstraintsM [TypeConstraint]
+initialCollectTypeConstaraintsState = S.empty
+
+collectTypeConstraints :: TExpr -> CollectTypeConstraintsM ()
 collectTypeConstraints (TLetIn pat impl body t) = do
-  collectFromPattern pat
-  get
-    where collectFromPattern :: Pattern -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncPatternのとき、そのシンボルの型を返す
-          collectFromPattern (VarPattern thetype sym) = do
+  _ <- collectFromPattern pat t
+  putTypeConstraint $ TypeEq (impl ^. _typeExpr) t
+  collectTypeConstraints impl
+  collectTypeConstraints body
+    where collectFromPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncPatternのときはそのシンボルの型を返す
+          -- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
+          collectFromPattern (VarPattern thetype sym) rtype = do
             let c = TypeOfSym sym thetype
             putTypeConstraint $ c
             pure $ Just c
-          collectFromPattern (FuncPattern t f args) = do
+          collectFromPattern (FuncPattern t f args) rtype = do
             let c = TypeOfSym f t
-            putTypeConstraint $ c
+            putTypeConstraint c
+
+            let functype = buildFuncType rtype (fmap snd args)
+            putTypeConstraint $ TypeEq functype t
+
             forM_ args $ \(s, t) -> do
               putTypeConstraint $ TypeOfSym s t
             pure $ Just c
-          collectFromPattern (ParenPattern theType pat) = do
-            c <- collectFromPattern pat
+              where
+                buildFuncType :: TypeExpr -> [TypeExpr] -> TypeExpr
+                buildFuncType ret [] = ret
+                buildFuncType ret (x:xs) = x ::-> buildFuncType ret xs
+          collectFromPattern (ParenPattern theType pat) rtype = do
+            c <- collectFromPattern pat rtype
             case c of
               Just (TypeOfSym s t) -> do
                 putTypeConstraint $ TypeEq t theType
                 pure Nothing
-              Nothing ->
+              _ ->
                 pure Nothing
-
-
-
-collectTypeConstraints _ = pure []
-
+          collectFromPattern (ConstantPattern _ _) _ = pure Nothing
+          collectFromPattern (ListPattern _ _) _ = pure Nothing
+          collectFromPattern (OrPattern _ _ _) _ = pure Nothing
+collectTypeConstraints (TFunApply sym args t) = do
+  undefined
+collectTypeConstraints (TInfixOpExpr l op r t)
+  | elem op [Plus, Minus, Mul, Div, Mod] = do
+      putTypeConstraint $ TypeEq (l ^. _typeExpr) ocamlInt
+      putTypeConstraint $ TypeEq (r ^. _typeExpr) ocamlInt
+      putTypeConstraint $ TypeEq t ocamlInt
+  | elem op [PlusDot, MinusDot, MulDot, DivDot] = do
+      putTypeConstraint $ TypeEq (l ^. _typeExpr) ocamlFloat
+      putTypeConstraint $ TypeEq (r ^. _typeExpr) ocamlFloat
+      putTypeConstraint $ TypeEq t ocamlFloat
+  | elem op [BoolAnd, BoolOr] = do
+      putTypeConstraint $ TypeEq (l ^. _typeExpr) ocamlBool
+      putTypeConstraint $ TypeEq (r ^. _typeExpr) ocamlBool
+      putTypeConstraint $ TypeEq t ocamlBool
+  | isComp op = do
+      putTypeConstraint $ TypeEq (l ^. _typeExpr) (r ^. _typeExpr)
+      putTypeConstraint $ TypeEq t ocamlBool
+  | otherwise = do
+      error $ "oprator" <> show op <> "'s type constraint is undefined"
+    where
+      isComp (Compare _) = True
+      isComp _ = False
+collectTypeConstraints _ = pure ()
 
 typeCheck :: Expr -> Either CompileError TExpr
 typeCheck e = do
   let e' = renameSymsByScope e
-  pure $ (initialTypeInfer e') `evalState` initialMangleTypeVarStat
+  let te' = (initialTypeInfer e') `evalState` initialMangleTypeVarStat
+  let constraints = (collectTypeConstraints te') `evalState` initialCollectTypeConstaraintsState
+  pure te'
