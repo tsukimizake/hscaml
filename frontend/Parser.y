@@ -7,7 +7,7 @@ import Control.Lens hiding ((:<), (:>))
 }
 
 %name stmtParser Stmt
-%name exprParser Expr
+%name exprParser TopLevel
 %tokentype {Token}
 %error {parseError}
 
@@ -62,11 +62,15 @@ qvar {QuotedTokenVar $$}
 
 %%
 Stmt :: {Statement}
-  : Exprs {Statement $1}
+  : TopLevels {Statement $1}
 
-Exprs :: {[Expr]}
-  : Expr ";;" {[$1]}
-  | Expr ";;" Exprs  {$1 : $3}
+TopLevels :: {[Expr]}
+  : TopLevel ";;" {[$1]}
+  | TopLevel ";;" TopLevels  {$1 : $3}
+
+TopLevel :: {Expr}
+  : Expr {$1}
+  | TypeDecl {$1}
 
 Expr :: {Expr}
   : Expr "+" Expr {$1 :+ $3}
@@ -92,10 +96,9 @@ Expr :: {Expr}
   | Expr "/" Expr {$1 :/ $3}
   | Expr "*." Expr {$1 :*. $3}
   | Expr "/." Expr {$1 :/. $3}
-  | downvar ArgExprList {FunApply (Sym $1) $2}
+  | Expr ArgExprList {FunApply $1 $2}
   | "if" Expr "then" Expr "else" Expr {IfThenElse $2 $4 $6}
   | "match" Expr "with" MatchPats {Match $2 $4}
-  | TypeDecl {$1}
   | ArgExpr {$1}
 
 MatchPats :: {[(Pattern, Expr)]}

@@ -47,7 +47,7 @@ data Expr = Constant Value
           | IfThenElse Expr Expr Expr
           | Match Expr [(Pattern, Expr)]
           | While Expr Expr
-          | FunApply Sym [Expr]
+          | FunApply Expr [Expr]
           | Let Pattern Expr
           | LetRec Pattern Expr
           | LetIn Pattern Expr Expr
@@ -65,7 +65,7 @@ data TExpr = TConstant Value TypeExpr
            | TIfThenElse TExpr TExpr TExpr TypeExpr
            | TMatch TExpr [(Pattern, TExpr)] TypeExpr
            | TWhile TExpr TExpr TypeExpr
-           | TFunApply Sym [TExpr] TypeExpr
+           | TFunApply TExpr [TExpr] TypeExpr
            | TLet Pattern TExpr TypeExpr
            | TLetRec Pattern TExpr TypeExpr
            | TLetIn Pattern TExpr TExpr TypeExpr

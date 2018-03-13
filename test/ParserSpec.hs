@@ -21,8 +21,8 @@ parserSpec = do
     describe "parseExpr" $ do
         testParser "82*3+3-(2-  2)+  (2  )  " ((((IntC 82) :* (IntC 3)) :+ (IntC 3)) :- (Paren ((IntC 2) :- (IntC 2))) :+ (Paren (IntC 2)))
         testParser "x*y-1" (((V "x") :* (V "y")) :- (IntC 1))
-        testParser "x * f y -1" ((V "x" :* (FunApply "f" [V "y"])) :- (IntC 1))
-        testParser "x - f y *1" (V "x" :- ((FunApply "f" [V "y"]) :* (IntC 1)))
+        testParser "x * f y -1" ((V "x" :* (FunApply (V "f") [V "y"])) :- (IntC 1))
+        testParser "x - f y *1" (V "x" :- ((FunApply (V "f") [V "y"]) :* (IntC 1)))
 
         testParser "let eu = 4" (Let (VarPattern UnspecifiedType "eu") (Constant (IntVal 4)))
         testParser "let (eu:'a) = 4" (Let (ParenPattern (TypeVar "'a") (VarPattern (TypeVar "'a") "eu")) (IntC 4))
@@ -37,9 +37,9 @@ parserSpec = do
             (LetRec (FuncPattern UnspecifiedType "fib" [("x", UnspecifiedType)])
                     (IfThenElse ((V "x") :<= (IntC 1))
                      (IntC 1)
-                     ((FunApply (Sym "fib") [(Paren $ V "x" :- IntC 1)])
+                     ((FunApply (V "fib") [(Paren $ V "x" :- IntC 1)])
                       :+
-                      (FunApply (Sym "fib") [(Paren $ V "x" :- IntC 2)]))))
+                      (FunApply (V "fib") [(Paren $ V "x" :- IntC 2)]))))
         testParser "let f a b = a = b"
             (Let (FuncPattern UnspecifiedType "f" [(Sym "a", UnspecifiedType), (Sym "b", UnspecifiedType)])
              ((V "a") :== (V "b")))
@@ -67,7 +67,7 @@ parserSpec = do
                        DataCnstr "Cons" [(TypeVar "'a"), TypeApplication [(TypeVar "'a")] (TypeAtom "list")]]
                       )
         testParser "let main = print_int 42"
-            (Let (VarPattern UnspecifiedType (Sym "main")) (FunApply (Sym "print_int") [(IntC 42)]))
+            (Let (VarPattern UnspecifiedType (Sym "main")) (FunApply (V "print_int") [(IntC 42)]))
         testParser "match x with |1 -> true |2 ->false"
             (Match (V "x") [(ConstantPattern UnspecifiedType (IntVal 1), (Constant(BoolVal True))),
                             (ConstantPattern UnspecifiedType (IntVal 2), (Constant(BoolVal False)))])
@@ -78,6 +78,13 @@ parserSpec = do
                (Sym "f") [(Sym "x", UnspecifiedType),  (Sym "y", UnspecifiedType)])
               ((V "x") :* (V "y"))
               (V "f"))
+        testParser "let f g h x = (f g) (h x) in g"
+          (LetIn
+          (FuncPattern
+           UnspecifiedType
+          (Sym "f") [(Sym "g", UnspecifiedType), (Sym "h", UnspecifiedType), (Sym "x", UnspecifiedType)])
+          (FunApply (Paren (FunApply (V "f") [(V "g")])) [(Paren (FunApply (V "h") [(V "x")]))])
+          (V "g"))
     describe "parseStatement" $ do
         it  "hoge ;; huga ;; " $ parseStatement "hoge ;; huga ;; "
             `shouldBe` (Statement [V "hoge", V "huga"])
