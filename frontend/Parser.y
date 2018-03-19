@@ -4,6 +4,7 @@ import Types
 import Token
 import Lexer
 import Control.Lens hiding ((:<), (:>))
+import qualified Data.Text as T
 }
 
 %name stmtParser Stmt
@@ -18,6 +19,7 @@ downvar {DownTokenVar $$}
 qvar {QuotedTokenVar $$}
 "let" {TokenLet}
 "rec" {TokenRec}
+"fun" {TokenFun}
 "in"  {TokenIn}
 "+" {TokenPlus}
 "-" {TokenMinus}
@@ -44,7 +46,6 @@ qvar {QuotedTokenVar $$}
 ";" {TokenSemicolon}
 "|" {TokenPipe}
 "type" {TokenType}
-
 "if" {TokenIf}
 "then" {TokenThen}
 "else" {TokenElse}
@@ -56,6 +57,7 @@ qvar {QuotedTokenVar $$}
 "begin" {TokenBegin}
 "end" {TokenEnd}
 ";;" {TokenDoubleSemicolon}
+
 %right "="
 %left "+" "-" "+." "-."
 %left "*" "/" "*." "/."
@@ -92,6 +94,7 @@ Expr :: {Expr}
   | "let" Pattern "=" Expr {Let $2 $4}
   | "let" "rec" Pattern "=" Expr {LetRec $3 $5}
   | "let" Pattern "=" Expr "in" Expr {LetIn $2 $4 $6}
+  | "fun" SymList "->" Expr {LetIn (FuncPattern UnspecifiedType (Sym (T.pack "fun")) (zip $2 (repeat UnspecifiedType))) $4 $4}
   | Expr "*" Expr {$1 :* $3}
   | Expr "/" Expr {$1 :/ $3}
   | Expr "*." Expr {$1 :*. $3}

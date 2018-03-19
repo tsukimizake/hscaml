@@ -85,6 +85,22 @@ parserSpec = do
           (Sym "f") [(Sym "g", UnspecifiedType), (Sym "h", UnspecifiedType), (Sym "x", UnspecifiedType)])
           (FunApply (Paren (FunApply (V "f") [(V "g")])) [(Paren (FunApply (V "h") [(V "x")]))])
           (V "g"))
+        testParser "fun x -> x+1"
+          (LetIn
+           (FuncPattern
+            UnspecifiedType
+            (Sym "fun") [(Sym "x", UnspecifiedType)])
+           (V "x" :+ IntC 1)
+           (V "x" :+ IntC 1)
+          )
+        testParser "fun x -> x+y"
+          (LetIn
+           (FuncPattern
+            UnspecifiedType
+            (Sym "fun") [(Sym "x", UnspecifiedType)])
+           (V "x" :+ V "y")
+           (V "x" :+ V "y")
+          )
     describe "parseStatement" $ do
         it  "hoge ;; huga ;; " $ parseStatement "hoge ;; huga ;; "
             `shouldBe` (Statement [V "hoge", V "huga"])
