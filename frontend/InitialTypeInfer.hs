@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
-module InitialTypeInfer where
+module InitialTypeInfer (initialTypeInfer) where
 
 import Types
 import OCamlType

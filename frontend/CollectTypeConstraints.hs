@@ -1,6 +1,6 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE TemplateHaskell #-}
-module CollectTypeConstraints where
+module CollectTypeConstraints (collectTypeConstraints, collectTypeConstraintsStmt, TypeConstraint(TypeEq, TypeOfExpr)) where
 import Control.Lens as L
 import Control.Lens.Operators
 import Control.Zipper
@@ -35,8 +35,8 @@ data TIStep =
 
 L.makeLenses ''TypeConstraint
 
-collectTypeConstraintsImplStmt :: TStatement -> CollectTypeConstraintsM (S.Set TypeConstraint)
-collectTypeConstraintsImplStmt (TStatement exprs) = do
+collectTypeConstraintsStmt :: TStatement -> CollectTypeConstraintsM (S.Set TypeConstraint)
+collectTypeConstraintsStmt (TStatement exprs) = do
   forM_ exprs $ \expr -> do
     collectTypeConstraintsImpl expr
   get

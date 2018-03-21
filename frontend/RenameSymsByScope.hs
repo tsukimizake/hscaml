@@ -1,7 +1,7 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
-module RenameSymsByScope where
+module RenameSymsByScope (renameSymsByScope) where
 import Types
 import Control.Monad.State.Strict
 import Data.Map as M
@@ -18,7 +18,6 @@ data RenameState =
     } deriving (Show)
 
 makeLenses ''RenameState
-
 
 initialRenameState :: RenameState
 initialRenameState = RenameState {_counter=M.empty, _renameStack=M.empty}
