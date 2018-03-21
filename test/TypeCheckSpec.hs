@@ -7,9 +7,13 @@ import OCamlType
 import Parser
 import TypeChecker
 import TypeCheckUtil
+import RenameSymsByScope
 import Control.Monad.State
 import Debug.Trace
 import Data.Set as S
+import CollectTypeConstraints
+import InitialTypeInfer
+import TypeChecker
 
 testTypeCheckExpr :: String -> TExpr -> Spec
 testTypeCheckExpr src ast = it src $ do

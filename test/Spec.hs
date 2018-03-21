@@ -7,6 +7,9 @@ import Parser
 import Types
 import OCamlType
 import TypeCheckUtil
+import InitialTypeInfer
+import RenameSymsByScope
+import CollectTypeConstraints
 import TypeChecker
 import ParserSpec
 import TypeCheckSpec
