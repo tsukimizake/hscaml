@@ -70,66 +70,66 @@ symToText :: Sym -> Text
 symToText (Sym x) = x
 
 -- とりあえずプリミティブや即値やアノテーション書かれたやつにだけ型を付ける, あとtypevarのリネーム
-initialTypeInfer :: Expr -> MangleTypeVarM TExpr
-initialTypeInfer (Constant x@(IntVal _)) = pure $ TConstant x ocamlInt
-initialTypeInfer (Constant x@(BoolVal _)) = pure $ TConstant x ocamlBool
-initialTypeInfer (Var x) = do
+initialTypeInferImpl :: Expr -> MangleTypeVarM TExpr
+initialTypeInferImpl (Constant x@(IntVal _)) = pure $ TConstant x ocamlInt
+initialTypeInferImpl (Constant x@(BoolVal _)) = pure $ TConstant x ocamlBool
+initialTypeInferImpl (Var x) = do
   t <- genTypeVar (Just $ symToText x) Nothing
   pure $ TVar x t
-initialTypeInfer (Paren e) = do
-  e' <- initialTypeInfer e
+initialTypeInferImpl (Paren e) = do
+  e' <- initialTypeInferImpl e
   t <- genTypeVar Nothing Nothing
   pure $ TParen e' t
-initialTypeInfer (InfixOpExpr e f g) = do
-  e' <- initialTypeInfer e
-  g' <- initialTypeInfer g
+initialTypeInferImpl (InfixOpExpr e f g) = do
+  e' <- initialTypeInferImpl e
+  g' <- initialTypeInferImpl g
   t <- genTypeVar Nothing Nothing
   pure $ TInfixOpExpr e' f g' t
-initialTypeInfer (BegEnd e) = do
-  e' <- initialTypeInfer e
+initialTypeInferImpl (BegEnd e) = do
+  e' <- initialTypeInferImpl e
   t <- genTypeVar Nothing Nothing
   pure $ TBegEnd e' t
-initialTypeInfer (MultiExpr e) = do
-  e' <- mapM initialTypeInfer e
+initialTypeInferImpl (MultiExpr e) = do
+  e' <- mapM initialTypeInferImpl e
   t <- genTypeVar Nothing Nothing
   pure $ TMultiExpr e' t
-initialTypeInfer (Constr e) = do
-  e' <- initialTypeInfer e
+initialTypeInferImpl (Constr e) = do
+  e' <- initialTypeInferImpl e
   t <- genTypeVar Nothing Nothing
   pure $ TConstr e' t
-initialTypeInfer (IfThenElse e f g) = do
-  e' <- initialTypeInfer e
-  f' <- initialTypeInfer f
-  g' <- initialTypeInfer g
+initialTypeInferImpl (IfThenElse e f g) = do
+  e' <- initialTypeInferImpl e
+  f' <- initialTypeInferImpl f
+  g' <- initialTypeInferImpl g
   t <- genTypeVar Nothing Nothing
   pure $ TIfThenElse e' f' g' t
-initialTypeInfer (Match e f) = do
-  e' <- initialTypeInfer e
-  f' <- mapM (mapM (initialTypeInfer)) f :: MangleTypeVarM [(Pattern, TExpr)]
+initialTypeInferImpl (Match e f) = do
+  e' <- initialTypeInferImpl e
+  f' <- mapM (mapM initialTypeInferImpl) f :: MangleTypeVarM [(Pattern, TExpr)]
   t <- genTypeVar Nothing Nothing
   pure $ TMatch e' f' t
-initialTypeInfer (While e f) = do
-  e' <- initialTypeInfer e
-  f' <- initialTypeInfer f
+initialTypeInferImpl (While e f) = do
+  e' <- initialTypeInferImpl e
+  f' <- initialTypeInferImpl f
   t <- genTypeVar Nothing Nothing
   pure $ TWhile e' f' t
-initialTypeInfer (FunApply e f) = do
-  e' <- initialTypeInfer e
-  f' <- mapM initialTypeInfer f
+initialTypeInferImpl (FunApply e f) = do
+  e' <- initialTypeInferImpl e
+  f' <- mapM initialTypeInferImpl f
   t <- genTypeVar Nothing Nothing
   pure $ TFunApply e' f' t
-initialTypeInfer (Let e f) = do
-  f' <- initialTypeInfer f
+initialTypeInferImpl (Let e f) = do
+  f' <- initialTypeInferImpl f
   t <- genTypeVar Nothing Nothing
   pure $ TLet e f' t
-initialTypeInfer (LetRec e f) = do
-  f' <- initialTypeInfer f
+initialTypeInferImpl (LetRec e f) = do
+  f' <- initialTypeInferImpl f
   t <- genTypeVar Nothing Nothing
   pure $ TLetRec e f' t
-initialTypeInfer (LetIn pat f g) = do
+initialTypeInferImpl (LetIn pat f g) = do
   pat' <- nameTypeVarInPat pat
-  f' <- initialTypeInfer f
-  g' <- initialTypeInfer g
+  f' <- initialTypeInferImpl f
+  g' <- initialTypeInferImpl g
   t <- genTypeVar Nothing Nothing
   pure $ TLetIn pat' f' g' t
     where
@@ -143,13 +143,15 @@ initialTypeInfer (LetIn pat f g) = do
           (VarPattern t' _) <- nameTypeVarInPat $ VarPattern t s
           pure (s, t')
         pure $ FuncPattern t' f xs'
-initialTypeInfer (TypeDecl e f) = do
+initialTypeInferImpl (TypeDecl e f) = do
   t <- genTypeVar Nothing Nothing
   pure $ TTypeDecl e f t
 
+initialTypeInfer exp = (initialTypeInferImpl exp) `evalState` initialMangleTypeVarStat
+
 initialTypeInferStmt :: Statement -> MangleTypeVarM TStatement
 initialTypeInferStmt (Statement exprs)= do
-  texprs <- mapM initialTypeInfer exprs
+  texprs <- mapM initialTypeInferImpl exprs
   pure $ TStatement texprs
 
 data TypeConstraint =
@@ -169,10 +171,10 @@ data TIStep =
 
 L.makeLenses ''TypeConstraint
 
-collectTypeConstraintsStmt :: TStatement -> CollectTypeConstraintsM (S.Set TypeConstraint)
-collectTypeConstraintsStmt (TStatement exprs) = do
+collectTypeConstraintsImplStmt :: TStatement -> CollectTypeConstraintsM (S.Set TypeConstraint)
+collectTypeConstraintsImplStmt (TStatement exprs) = do
   forM_ exprs $ \expr -> do
-    collectTypeConstraints expr
+    collectTypeConstraintsImpl expr
   get
 
 type CollectTypeConstraintsM a = State (S.Set TypeConstraint) a
@@ -183,13 +185,14 @@ putTypeConstraint tc = do
 
 initialCollectTypeConstaraintsState = S.empty
 
-collectTypeConstraints :: TExpr -> CollectTypeConstraintsM ()
-collectTypeConstraints exp@(TLetIn pat impl body t) = do
+collectTypeConstraintsImpl :: TExpr -> CollectTypeConstraintsM TExpr
+collectTypeConstraintsImpl exp@(TLetIn pat impl body t) = do
   _ <- collectFromPattern pat (impl ^. _typeExpr)
   putTypeConstraint $ TypeEq (body ^. _typeExpr) t
   putTypeConstraint $ TypeOfExpr exp
-  collectTypeConstraints impl
-  collectTypeConstraints body
+  collectTypeConstraintsImpl impl
+  collectTypeConstraintsImpl body
+  pure exp
     where collectFromPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncPatternのときはそのシンボルの型を返す
           -- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
           collectFromPattern (VarPattern thetype sym) rtype = do
@@ -222,54 +225,65 @@ collectTypeConstraints exp@(TLetIn pat impl body t) = do
           collectFromPattern (ListPattern _ _) _ = pure Nothing
           collectFromPattern (OrPattern _ _ _) _ = pure Nothing
 
-collectTypeConstraints (TFunApply func args t) = do
+collectTypeConstraintsImpl exp@(TFunApply func args t) = do
   let constraintType = makeConstraintType func args t
   putTypeConstraint $ TypeEq constraintType (func ^. _typeExpr)
   putTypeConstraint $ TypeOfExpr func
   mapM_ (putTypeConstraint . TypeOfExpr) args
-  collectTypeConstraints func
-  mapM_ collectTypeConstraints args
+  collectTypeConstraintsImpl func
+  mapM_ collectTypeConstraintsImpl args
+  pure exp
     where
       makeConstraintType :: TExpr -> [TExpr] -> TypeExpr -> TypeExpr
       makeConstraintType _ [] t = t
       makeConstraintType s (x:xs) t = (x ^. _typeExpr) ::-> makeConstraintType s xs t
-collectTypeConstraints (TParen inner outtype) = do
+collectTypeConstraintsImpl exp@(TParen inner outtype) = do
   putTypeConstraint $ TypeEq (inner ^. _typeExpr) outtype
-  collectTypeConstraints inner
-
-collectTypeConstraints (TInfixOpExpr l op r t)
+  collectTypeConstraintsImpl inner
+  pure exp
+collectTypeConstraintsImpl exp@(TInfixOpExpr l op r t)
   | elem op [Plus, Minus, Mul, Div, Mod] = do
       putTypeConstraint $ TypeEq (l ^. _typeExpr) ocamlInt
       putTypeConstraint $ TypeEq (r ^. _typeExpr) ocamlInt
       putTypeConstraint $ TypeEq t ocamlInt
+      pure exp
   | elem op [PlusDot, MinusDot, MulDot, DivDot] = do
       putTypeConstraint $ TypeEq (l ^. _typeExpr) ocamlFloat
       putTypeConstraint $ TypeEq (r ^. _typeExpr) ocamlFloat
       putTypeConstraint $ TypeEq t ocamlFloat
+      pure exp
   | elem op [BoolAnd, BoolOr] = do
       putTypeConstraint $ TypeEq (l ^. _typeExpr) ocamlBool
       putTypeConstraint $ TypeEq (r ^. _typeExpr) ocamlBool
       putTypeConstraint $ TypeEq t ocamlBool
+      pure exp
   | isComp op = do
       putTypeConstraint $ TypeEq (l ^. _typeExpr) (r ^. _typeExpr)
       putTypeConstraint $ TypeEq t ocamlBool
+      pure exp
   | otherwise = do
       error $ "oprator" <> show op <> "'s type constraint is undefined"
     where
       isComp (Compare _) = True
       isComp _ = False
-collectTypeConstraints _ = pure ()
+collectTypeConstraintsImpl exp = pure exp
+
+collectTypeConstraints :: TExpr -> Set TypeConstraint
+collectTypeConstraints te = let
+  impl = mapMTExpr collectTypeConstraintsImpl
+  in (impl te) `execState` initialCollectTypeConstaraintsState
 
 typeCheck :: Expr -> Either CompileError TExpr
 typeCheck e = do
   let e' = renameSymsByScope e
-  let te' = (initialTypeInfer e') `evalState` initialMangleTypeVarStat
-  let constraints = (collectTypeConstraints te') `evalState` initialCollectTypeConstaraintsState
+  let te' = initialTypeInfer e'
+  let constraints = collectTypeConstraints te'
   pure te'
 
+traceTexpr :: String -> IO ()
 traceTexpr s = do
     let expr = renameSymsByScope . parseExpr $ s
-    let texpr = (initialTypeInfer expr) `evalState` initialMangleTypeVarStat
+    let texpr = initialTypeInfer expr
     print texpr
-    let constraints = (collectTypeConstraints texpr) `execState` initialCollectTypeConstaraintsState
+    let constraints = collectTypeConstraints texpr
     print constraints

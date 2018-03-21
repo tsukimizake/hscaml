@@ -17,9 +17,9 @@ specExpr :: String -> Expr -> TExpr -> [TypeConstraint] -> Spec
 specExpr input parsed initialTypeInfered constraints = it input $ do
     let expr = renameSymsByScope . parseExpr $ input
     expr `shouldBe` parsed
-    let texpr = (initialTypeInfer expr) `evalState` initialMangleTypeVarStat
+    let texpr = initialTypeInfer expr
     texpr `shouldBe` initialTypeInfered
-    let cs = (collectTypeConstraints texpr) `execState` initialCollectTypeConstaraintsState
+    let cs = collectTypeConstraints texpr
     -- traceM $ show texpr
     cs `shouldBe` S.fromList constraints
 

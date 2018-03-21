@@ -21,8 +21,8 @@ testTypeCheckExpr src ast = it src $ do
 collectConstraintsSpec :: String -> [TypeConstraint] -> Spec
 collectConstraintsSpec s cs = it s $ do
     let expr = renameSymsByScope . parseExpr $ s
-    let texpr = (initialTypeInfer expr) `evalState` initialMangleTypeVarStat
-    let constraints = (collectTypeConstraints texpr) `execState` initialCollectTypeConstaraintsState
+    let texpr = initialTypeInfer expr
+    let constraints = collectTypeConstraints texpr
     -- traceM $ show texpr
     constraints `shouldBe` S.fromList cs
 
@@ -40,7 +40,7 @@ typeCheckSpec = do
                       (IntC 3)
                        (V "_x_gen_2")))) :: Expr)
   describe "initialTypeInfer" $ it "let f x y = x*y in f" $ do
-    (initialTypeInfer . renameSymsByScope . parseExpr $ "let f x y = x*y in f") `evalState` initialMangleTypeVarStat
+    (initialTypeInfer . renameSymsByScope . parseExpr $ "let f x y = x*y in f")
       `shouldBe` (TLetIn
                    (FuncPattern {__patType = TypeVar "_0", __sym = Sym {__name = "_f_gen_0"}, __args = [(Sym {__name = "_x_gen_0"}, TypeVar "_1"),(Sym {__name = "_y_gen_0"}, TypeVar "_2")]})
                    (TInfixOpExpr (TVar (Sym {__name = "_x_gen_0"}) (TypeVar "_1")) Mul (TVar (Sym {__name = "_y_gen_0"}) (TypeVar "_2")) (TypeVar "_3"))
