@@ -8,6 +8,7 @@ import Control.Lens
 import qualified Data.Text as T hiding (head)
 import Data.Maybe
 import Data.Monoid
+import Debug.Trace
 
 data RenameState =
     RenameState {
@@ -83,8 +84,9 @@ mapMExpr f (While e1 e2) = do
     e2' <- f e2
     pure $ While e1' e2'
 mapMExpr f (FunApply e1 e2) = do
+    e1' <- f e1
     e2' <- mapM f e2
-    pure $ FunApply e1 e2'
+    pure $ FunApply e1' e2'
 mapMExpr f (Let e1 e2) =  do
     e2' <- f e2
     pure $ Let e1 e2'
@@ -214,4 +216,9 @@ renameSymsByScope expr = evalState (impl expr) initialRenameState
           s' <- popRenameStack . unwrapSym $ s
           pure (s', t)
         pure $ LetIn (FuncPattern t (Sym s') (args')) e1' e2'
+    impl (FunApply (V f) args) = do
+      f' <- impl $ V f
+      args' <- forM args $ \arg -> do
+        impl arg
+      pure $ FunApply f' args'
     impl e = mapMExpr impl e

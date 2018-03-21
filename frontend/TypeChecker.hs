@@ -8,7 +8,8 @@ module TypeChecker where
 import Control.Zipper
 import Types
 import OCamlType
-import Control.Lens
+import qualified Control.Lens as L
+import Control.Lens.Operators
 import Control.Monad.State
 import Data.Text
 import Data.Monoid
@@ -17,6 +18,8 @@ import Data.Map as M
 import Data.Maybe
 import Data.Set as S
 import Debug.Trace
+import Parser
+
 textShow :: (Show a) => a -> Text
 textShow = pack . show
 
@@ -30,7 +33,7 @@ data MangleTypeVarStat = MangleTypeVarStat{
 initialMangleTypeVarStat = MangleTypeVarStat 0 M.empty
 
 type MangleTypeVarM a = State MangleTypeVarStat a
-makeLenses ''MangleTypeVarStat
+L.makeLenses ''MangleTypeVarStat
 
 -- 違うTypeExpr内の同じTypeVarは違う型であってほしいのでそこを別の名前にする。
 -- 下の[全ての型式のtypevarをリネームする前処理が必要(TODO)]がこれの予定
@@ -47,7 +50,7 @@ genTypeVar symm (Just tname)
       pure $ TypeVar typename
   | otherwise = do
       let sym = fromJust symm
-      vars <- use _varName
+      vars <- L.use _varName
       let lookedup = M.lookup sym vars
       if (isJust lookedup)
         then do
@@ -59,7 +62,7 @@ genTypeVar symm (Just tname)
         pure $ TypeVar typename
           where
             genNewTypeName defaultName = do
-              n <- use _genSymNumber
+              n <- L.use _genSymNumber
               _genSymNumber .= (n+1)
               pure $ "_" <> defaultName <> textShow n
 
@@ -111,9 +114,10 @@ initialTypeInfer (While e f) = do
   t <- genTypeVar Nothing Nothing
   pure $ TWhile e' f' t
 initialTypeInfer (FunApply e f) = do
+  e' <- initialTypeInfer e
   f' <- mapM initialTypeInfer f
   t <- genTypeVar Nothing Nothing
-  pure $ TFunApply e f' t
+  pure $ TFunApply e' f' t
 initialTypeInfer (Let e f) = do
   f' <- initialTypeInfer f
   t <- genTypeVar Nothing Nothing
@@ -141,7 +145,6 @@ initialTypeInfer (LetIn pat f g) = do
         pure $ FuncPattern t' f xs'
 initialTypeInfer (TypeDecl e f) = do
   t <- genTypeVar Nothing Nothing
-
   pure $ TTypeDecl e f t
 
 initialTypeInferStmt :: Statement -> MangleTypeVarM TStatement
@@ -154,9 +157,8 @@ data TypeConstraint =
   __lhs :: TypeExpr,
   __rhs :: TypeExpr
   }|
-  TypeOfSym{
-  __symbol :: Sym,
-  __type :: TypeExpr
+  TypeOfExpr{
+  __texpr :: TExpr
   } deriving (Show, Ord, Eq)
 
 data TIStep =
@@ -165,7 +167,7 @@ data TIStep =
   __constraints :: [TypeConstraint]
         } deriving(Show, Ord, Eq)
 
-makeLenses ''TypeConstraint
+L.makeLenses ''TypeConstraint
 
 collectTypeConstraintsStmt :: TStatement -> CollectTypeConstraintsM (S.Set TypeConstraint)
 collectTypeConstraintsStmt (TStatement exprs) = do
@@ -182,26 +184,27 @@ putTypeConstraint tc = do
 initialCollectTypeConstaraintsState = S.empty
 
 collectTypeConstraints :: TExpr -> CollectTypeConstraintsM ()
-collectTypeConstraints (TLetIn pat impl body t) = do
-  _ <- collectFromPattern pat t
-  putTypeConstraint $ TypeEq (impl ^. _typeExpr) t
+collectTypeConstraints exp@(TLetIn pat impl body t) = do
+  _ <- collectFromPattern pat (impl ^. _typeExpr)
+  putTypeConstraint $ TypeEq (body ^. _typeExpr) t
+  putTypeConstraint $ TypeOfExpr exp
   collectTypeConstraints impl
   collectTypeConstraints body
     where collectFromPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncPatternのときはそのシンボルの型を返す
           -- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
           collectFromPattern (VarPattern thetype sym) rtype = do
-            let c = TypeOfSym sym thetype
+            let c = TypeOfExpr (TVar sym thetype)
             putTypeConstraint $ c
             pure $ Just c
           collectFromPattern (FuncPattern t f args) rtype = do
-            let c = TypeOfSym f t
+            let c = TypeOfExpr (TVar f t)
             putTypeConstraint c
 
             let functype = buildFuncType rtype (fmap snd args)
             putTypeConstraint $ TypeEq functype t
 
             forM_ args $ \(s, t) -> do
-              putTypeConstraint $ TypeOfSym s t
+              putTypeConstraint $ TypeOfExpr (TVar s t)
             pure $ Just c
               where
                 buildFuncType :: TypeExpr -> [TypeExpr] -> TypeExpr
@@ -210,7 +213,7 @@ collectTypeConstraints (TLetIn pat impl body t) = do
           collectFromPattern (ParenPattern theType pat) rtype = do
             c <- collectFromPattern pat rtype
             case c of
-              Just (TypeOfSym s t) -> do
+              Just (TypeOfExpr (TVar s t)) -> do -- ? TVarでないTExprなら?
                 putTypeConstraint $ TypeEq t theType
                 pure Nothing
               _ ->
@@ -218,8 +221,22 @@ collectTypeConstraints (TLetIn pat impl body t) = do
           collectFromPattern (ConstantPattern _ _) _ = pure Nothing
           collectFromPattern (ListPattern _ _) _ = pure Nothing
           collectFromPattern (OrPattern _ _ _) _ = pure Nothing
-collectTypeConstraints (TFunApply sym args t) = do
-  undefined
+
+collectTypeConstraints (TFunApply func args t) = do
+  let constraintType = makeConstraintType func args t
+  putTypeConstraint $ TypeEq constraintType (func ^. _typeExpr)
+  putTypeConstraint $ TypeOfExpr func
+  mapM_ (putTypeConstraint . TypeOfExpr) args
+  collectTypeConstraints func
+  mapM_ collectTypeConstraints args
+    where
+      makeConstraintType :: TExpr -> [TExpr] -> TypeExpr -> TypeExpr
+      makeConstraintType _ [] t = t
+      makeConstraintType s (x:xs) t = (x ^. _typeExpr) ::-> makeConstraintType s xs t
+collectTypeConstraints (TParen inner outtype) = do
+  putTypeConstraint $ TypeEq (inner ^. _typeExpr) outtype
+  collectTypeConstraints inner
+
 collectTypeConstraints (TInfixOpExpr l op r t)
   | elem op [Plus, Minus, Mul, Div, Mod] = do
       putTypeConstraint $ TypeEq (l ^. _typeExpr) ocamlInt
@@ -249,3 +266,10 @@ typeCheck e = do
   let te' = (initialTypeInfer e') `evalState` initialMangleTypeVarStat
   let constraints = (collectTypeConstraints te') `evalState` initialCollectTypeConstaraintsState
   pure te'
+
+traceTexpr s = do
+    let expr = renameSymsByScope . parseExpr $ s
+    let texpr = (initialTypeInfer expr) `evalState` initialMangleTypeVarStat
+    print texpr
+    let constraints = (collectTypeConstraints texpr) `execState` initialCollectTypeConstaraintsState
+    print constraints
