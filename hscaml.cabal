@@ -14,8 +14,8 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  hs-source-dirs:      common, frontend, backend
-  exposed-modules:     Parser, Codegen, Types, OCamlType, Lexer, TypeCheckUtil, Optimizer, Token, TypeChecker, RenameSymsByScope, CollectTypeConstraints, InitialTypeInfer
+  hs-source-dirs:      common, parser, typechecker
+  exposed-modules:     Parser, Codegen, Types, OCamlType, Lexer, TypeCheckUtil, Optimizer, Token, TypeChecker, RenameSymsByScope, CollectTypeConstraints, InitialTypeInfer, Unify
   build-depends:       base >= 4.7 && < 5
                      , hspec >= 2.4.4
                      , parsec >= 3.1
