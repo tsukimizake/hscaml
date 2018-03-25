@@ -1,6 +1,6 @@
 {-# OPTIONS -Wall -Wno-name-shadowing #-}
 {-# LANGUAGE TemplateHaskell #-}
-module CollectTypeConstraints (collectTypeConstraints, collectTypeConstraintsStmt, TypeConstraint(TypeEq, TypeOfExpr)) where
+module CollectTypeConstraints (collectTypeConstraints, collectTypeConstraintsStmt, TypeConstraint(TypeEq)) where
 import Control.Lens as L
 import Types
 import OCamlType
@@ -9,22 +9,7 @@ import Data.Monoid
 import TypeCheckUtil
 import Data.Set as S
 
-data TypeConstraint =
-  TypeEq{
-  __lhs :: TypeExpr,
-  __rhs :: TypeExpr
-  }|
-  TypeOfExpr{
-  __texpr :: TExpr
-  } deriving (Show, Ord, Eq)
 
-data TIStep =
-  TIStep{
-  __Expr :: TExpr,
-  __constraints :: [TypeConstraint]
-        } deriving(Show, Ord, Eq)
-
-L.makeLenses ''TypeConstraint
 
 collectTypeConstraintsStmt :: TStatement -> CollectTypeConstraintsM (S.Set TypeConstraint)
 collectTypeConstraintsStmt (TStatement exprs) = do
@@ -43,38 +28,22 @@ collectTypeConstraintsImpl :: TExpr -> CollectTypeConstraintsM TExpr
 collectTypeConstraintsImpl exp@(TLetIn pat impl body t) = do
   _ <- collectFromPattern pat (impl ^. _typeExpr)
   putTypeConstraint $ TypeEq (body ^. _typeExpr) t
-  putTypeConstraint $ TypeOfExpr exp
   _<-collectTypeConstraintsImpl impl
   _<-collectTypeConstraintsImpl body
   pure exp
     where collectFromPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncPatternのときはそのシンボルの型を返す
           -- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
-          collectFromPattern (VarPattern thetype sym) _ = do
-            let c = TypeOfExpr (TVar sym thetype)
-            putTypeConstraint $ c
-            pure $ Just c
+          collectFromPattern (VarPattern thetype sym) _ = pure Nothing
           collectFromPattern (FuncPattern t f args) rtype = do
-            let c = TypeOfExpr (TVar f t)
-            putTypeConstraint c
-
             let functype = buildFuncType rtype (fmap snd args)
             putTypeConstraint $ TypeEq functype t
-
-            forM_ args $ \(s, t) -> do
-              putTypeConstraint $ TypeOfExpr (TVar s t)
-            pure $ Just c
+            pure $ Nothing
               where
                 buildFuncType :: TypeExpr -> [TypeExpr] -> TypeExpr
                 buildFuncType ret [] = ret
                 buildFuncType ret (x:xs) = x ::-> buildFuncType ret xs
           collectFromPattern (ParenPattern theType pat) rtype = do
-            c <- collectFromPattern pat rtype
-            case c of
-              Just (TypeOfExpr (TVar _ t)) -> do -- ? TVarでないTExprなら?
-                putTypeConstraint $ TypeEq t theType
-                pure Nothing
-              _ ->
-                pure Nothing
+            collectFromPattern pat rtype
           collectFromPattern (ConstantPattern _ _) _ = pure Nothing
           collectFromPattern (ListPattern _ _) _ = pure Nothing
           collectFromPattern (OrPattern _ _ _) _ = pure Nothing
@@ -82,8 +51,6 @@ collectTypeConstraintsImpl exp@(TLetIn pat impl body t) = do
 collectTypeConstraintsImpl exp@(TFunApply func args t) = do
   let constraintType = makeConstraintType func args t
   putTypeConstraint $ TypeEq constraintType (func ^. _typeExpr)
-  putTypeConstraint $ TypeOfExpr func
-  mapM_ (putTypeConstraint . TypeOfExpr) args
   _<-collectTypeConstraintsImpl func
   mapM_ collectTypeConstraintsImpl args
   pure exp

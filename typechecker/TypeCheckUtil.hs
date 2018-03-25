@@ -1,6 +1,11 @@
 {-# OPTIONS -Wall #-}
+{-# LANGUAGE TemplateHaskell #-}
 module TypeCheckUtil where
 import Types
+import Data.Text
+import Data.Functor.Identity
+import Data.Monoid
+import Control.Lens as L
 
 -- Exprに対するmap
 traverseExpr :: (Monad m) => (Expr -> m Expr) -> Expr -> m Expr
@@ -102,3 +107,54 @@ traverseTExpr f (TLetIn e1 e2 e3 t) = do
     f $ TLetIn e1 e2' e3' t
 traverseTExpr f (TTypeDecl e1 e2 t) = do
   f $ TTypeDecl e1 e2 t
+
+traverseTypeExpr :: (Monad m) => (TypeExpr -> m TypeExpr) -> TypeExpr -> (m TypeExpr)
+traverseTypeExpr f (l ::-> r) = do
+  l' <- traverseTypeExpr f l
+  r' <- traverseTypeExpr f r
+  pure (l' ::-> r')
+traverseTypeExpr f (l ::* r) = do
+  l' <- traverseTypeExpr f l
+  r' <- traverseTypeExpr f r
+  pure (l' ::* r')
+traverseTypeExpr f (l ::+ r) = do
+  l' <- traverseTypeExpr f l
+  r' <- traverseTypeExpr f r
+  pure (l' ::+ r')
+traverseTypeExpr f (ParenTypeExpr inner) = f inner
+traverseTypeExpr f (TypeApplication xs a) = do
+  xs' <- mapM (traverseTypeExpr f) xs
+  a' <- traverseTypeExpr f a
+  pure $ TypeApplication xs' a'
+traverseTypeExpr f x = f x
+
+data TV = TV Text deriving(Show, Eq, Ord)
+
+class TypeVarReplaceable a where
+  replaceTypeVar :: TV -> TypeExpr -> a -> a
+
+instance TypeVarReplaceable TypeExpr where
+  replaceTypeVar from to orig = runIdentity $ traverseTypeExpr impl orig
+    where
+      impl :: TypeExpr -> Identity TypeExpr
+      impl orig@(TypeVar _) = if (fromTV from) == orig then pure to else pure orig
+      impl te = pure te
+
+data TypeConstraint =
+  TypeEq{
+  __lhs :: TypeExpr,
+  __rhs :: TypeExpr
+  } deriving (Show, Ord, Eq)
+
+
+instance TypeVarReplaceable TypeConstraint where
+  replaceTypeVar from to (TypeEq l r) = TypeEq (replaceTypeVar from to l) (replaceTypeVar from to r)
+
+toTV :: TypeExpr -> Either CompileError TV
+toTV (TypeVar s) = pure $ TV s
+toTV v = Left $ TypeError $ pack $ show v <> "is not TypeVar"
+
+fromTV :: TV -> TypeExpr
+fromTV (TV s) = TypeVar s
+
+L.makeLenses ''TypeConstraint

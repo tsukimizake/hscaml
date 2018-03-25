@@ -115,8 +115,7 @@ pattern TIntC :: Int -> TExpr
 pattern TIntC x = TConstant (IntVal x) (TypeAtom "Bool")
 pattern TBoolC :: Bool -> TExpr
 pattern TBoolC x = TConstant (BoolVal x) (TypeAtom "Bool")
-pattern TV :: Text -> TExpr
-pattern TV x = TVar (Sym x) UnspecifiedType
+
 pattern (:*:) :: TExpr -> TExpr -> TExpr
 pattern l :*: r = TInfixOpExpr l Mul r (TypeAtom "int" ::-> TypeAtom "int" ::-> TypeAtom "int")
 pattern (:+:) :: TExpr -> TExpr -> TExpr
