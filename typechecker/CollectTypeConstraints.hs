@@ -1,22 +1,13 @@
-{-# OPTIONS -Wall #-}
+{-# OPTIONS -Wall -Wno-name-shadowing #-}
 {-# LANGUAGE TemplateHaskell #-}
 module CollectTypeConstraints (collectTypeConstraints, collectTypeConstraintsStmt, TypeConstraint(TypeEq, TypeOfExpr)) where
 import Control.Lens as L
-import Control.Lens.Operators
-import Control.Zipper
 import Types
 import OCamlType
-import qualified Control.Lens as L
-import Control.Lens.Operators
 import Control.Monad.State
-import Data.Text
 import Data.Monoid
 import TypeCheckUtil
-import Data.Map as M
-import Data.Maybe
 import Data.Set as S
-import Debug.Trace
-import Parser
 
 data TypeConstraint =
   TypeEq{
@@ -47,19 +38,18 @@ putTypeConstraint :: TypeConstraint -> CollectTypeConstraintsM ()
 putTypeConstraint tc = do
   modify' (S.insert tc)
 
-initialCollectTypeConstaraintsState = S.empty
 
 collectTypeConstraintsImpl :: TExpr -> CollectTypeConstraintsM TExpr
 collectTypeConstraintsImpl exp@(TLetIn pat impl body t) = do
   _ <- collectFromPattern pat (impl ^. _typeExpr)
   putTypeConstraint $ TypeEq (body ^. _typeExpr) t
   putTypeConstraint $ TypeOfExpr exp
-  collectTypeConstraintsImpl impl
-  collectTypeConstraintsImpl body
+  _<-collectTypeConstraintsImpl impl
+  _<-collectTypeConstraintsImpl body
   pure exp
     where collectFromPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncPatternのときはそのシンボルの型を返す
           -- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
-          collectFromPattern (VarPattern thetype sym) rtype = do
+          collectFromPattern (VarPattern thetype sym) _ = do
             let c = TypeOfExpr (TVar sym thetype)
             putTypeConstraint $ c
             pure $ Just c
@@ -80,7 +70,7 @@ collectTypeConstraintsImpl exp@(TLetIn pat impl body t) = do
           collectFromPattern (ParenPattern theType pat) rtype = do
             c <- collectFromPattern pat rtype
             case c of
-              Just (TypeOfExpr (TVar s t)) -> do -- ? TVarでないTExprなら?
+              Just (TypeOfExpr (TVar _ t)) -> do -- ? TVarでないTExprなら?
                 putTypeConstraint $ TypeEq t theType
                 pure Nothing
               _ ->
@@ -94,7 +84,7 @@ collectTypeConstraintsImpl exp@(TFunApply func args t) = do
   putTypeConstraint $ TypeEq constraintType (func ^. _typeExpr)
   putTypeConstraint $ TypeOfExpr func
   mapM_ (putTypeConstraint . TypeOfExpr) args
-  collectTypeConstraintsImpl func
+  _<-collectTypeConstraintsImpl func
   mapM_ collectTypeConstraintsImpl args
   pure exp
     where
@@ -103,7 +93,7 @@ collectTypeConstraintsImpl exp@(TFunApply func args t) = do
       makeConstraintType s (x:xs) t = (x ^. _typeExpr) ::-> makeConstraintType s xs t
 collectTypeConstraintsImpl exp@(TParen inner outtype) = do
   putTypeConstraint $ TypeEq (inner ^. _typeExpr) outtype
-  collectTypeConstraintsImpl inner
+  _<-collectTypeConstraintsImpl inner
   pure exp
 collectTypeConstraintsImpl exp@(TInfixOpExpr l op r t)
   | elem op [Plus, Minus, Mul, Div, Mod] = do
@@ -134,5 +124,5 @@ collectTypeConstraintsImpl exp = pure exp
 
 collectTypeConstraints :: TExpr -> Set TypeConstraint
 collectTypeConstraints te = let
-  impl = mapMTExpr collectTypeConstraintsImpl
-  in (impl te) `execState` initialCollectTypeConstaraintsState
+  impl = traverseTExpr collectTypeConstraintsImpl
+  in (impl te) `execState` S.empty

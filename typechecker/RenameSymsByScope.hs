@@ -1,4 +1,4 @@
-{-# OPTIONS -Wall #-}
+{-# OPTIONS -Wall -Wno-name-shadowing #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 module RenameSymsByScope (renameSymsByScope) where
@@ -121,4 +121,4 @@ renameSymsByScope expr = evalState (impl expr) initialRenameState
       args' <- forM args $ \arg -> do
         impl arg
       pure $ FunApply f' args'
-    impl e = mapMExpr impl e
+    impl e = traverseExpr impl e

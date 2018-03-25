@@ -3,102 +3,102 @@ module TypeCheckUtil where
 import Types
 
 -- Exprに対するmap
-mapMExpr :: (Monad m) => (Expr -> m Expr) -> Expr -> m Expr
-mapMExpr f x@(Constant _) = f x
-mapMExpr f x@(Var _) = f x
-mapMExpr f (Paren e) = do
-    e'  <- mapMExpr f e
+traverseExpr :: (Monad m) => (Expr -> m Expr) -> Expr -> m Expr
+traverseExpr f x@(Constant _) = f x
+traverseExpr f x@(Var _) = f x
+traverseExpr f (Paren e) = do
+    e'  <- traverseExpr f e
     pure $ Paren e'
-mapMExpr f (InfixOpExpr e iop g) = do
-    e'  <- mapMExpr f e
-    g'  <- mapMExpr f g
+traverseExpr f (InfixOpExpr e iop g) = do
+    e'  <- traverseExpr f e
+    g'  <- traverseExpr f g
     pure $ InfixOpExpr e' iop g'
-mapMExpr f (BegEnd e) = do
-    e'  <- mapMExpr f e
+traverseExpr f (BegEnd e) = do
+    e'  <- traverseExpr f e
     pure $ BegEnd e'
-mapMExpr f (MultiExpr e) = do
+traverseExpr f (MultiExpr e) = do
     e' <- mapM f e
     pure $ MultiExpr e'
-mapMExpr f (Constr e) = do
-    e'  <- mapMExpr f e
+traverseExpr f (Constr e) = do
+    e'  <- traverseExpr f e
     pure $ Constr e'
-mapMExpr f (IfThenElse e1 e2 e3) = do
-    e1'  <- mapMExpr f e1
-    e2'  <- mapMExpr f e2
-    e3'  <- mapMExpr f e3
+traverseExpr f (IfThenElse e1 e2 e3) = do
+    e1'  <- traverseExpr f e1
+    e2'  <- traverseExpr f e2
+    e3'  <- traverseExpr f e3
     pure $ IfThenElse e1' e2' e3'
-mapMExpr f (Match e1 e2) = do
-    e1'  <- mapMExpr f e1
+traverseExpr f (Match e1 e2) = do
+    e1'  <- traverseExpr f e1
     e2' <- mapM (\(x, y) -> do
-                     y'  <- mapMExpr f y
+                     y'  <- traverseExpr f y
                      pure (x, y')) e2
     pure $ Match e1' e2'
-mapMExpr f (While e1 e2) = do
-    e1'  <- mapMExpr f e1
-    e2'  <- mapMExpr f e2
+traverseExpr f (While e1 e2) = do
+    e1'  <- traverseExpr f e1
+    e2'  <- traverseExpr f e2
     pure $ While e1' e2'
-mapMExpr f (FunApply e1 e2) = do
-    e1'  <- mapMExpr f e1
+traverseExpr f (FunApply e1 e2) = do
+    e1'  <- traverseExpr f e1
     e2' <- mapM f e2
     pure $ FunApply e1' e2'
-mapMExpr f (Let e1 e2) =  do
-    e2'  <- mapMExpr f e2
+traverseExpr f (Let e1 e2) =  do
+    e2'  <- traverseExpr f e2
     pure $ Let e1 e2'
-mapMExpr f (LetRec e1 e2) =  do
-    e2'  <- mapMExpr f e2
+traverseExpr f (LetRec e1 e2) =  do
+    e2'  <- traverseExpr f e2
     pure $ LetRec e1 e2'
-mapMExpr f (LetIn e1 e2 e3) = do
-    e2'  <- mapMExpr f e2
-    e3'  <- mapMExpr f e3
+traverseExpr f (LetIn e1 e2 e3) = do
+    e2'  <- traverseExpr f e2
+    e3'  <- traverseExpr f e3
     pure $ LetIn e1 e2' e3'
-mapMExpr _ (TypeDecl e1 e2) = pure $ TypeDecl e1 e2
+traverseExpr _ (TypeDecl e1 e2) = pure $ TypeDecl e1 e2
 
-mapMTExpr :: (Monad m) => (TExpr -> m TExpr) -> TExpr -> m TExpr
-mapMTExpr f x@(TConstant _ _) = f x
-mapMTExpr f x@(TVar _ _) = f x
-mapMTExpr f (TParen e t) = do
-    e'  <- mapMTExpr f e
+traverseTExpr :: (Monad m) => (TExpr -> m TExpr) -> TExpr -> m TExpr
+traverseTExpr f x@(TConstant _ _) = f x
+traverseTExpr f x@(TVar _ _) = f x
+traverseTExpr f (TParen e t) = do
+    e'  <- traverseTExpr f e
     f $ TParen e' t
-mapMTExpr f (TInfixOpExpr e iop g t) = do
-    e'  <- mapMTExpr f e
-    g'  <- mapMTExpr f g
+traverseTExpr f (TInfixOpExpr e iop g t) = do
+    e'  <- traverseTExpr f e
+    g'  <- traverseTExpr f g
     pure $ TInfixOpExpr e' iop g' t
-mapMTExpr f (TBegEnd e t) = do
-    e'  <- mapMTExpr f e
+traverseTExpr f (TBegEnd e t) = do
+    e'  <- traverseTExpr f e
     f $ TBegEnd e' t
-mapMTExpr f (TMultiExpr e t) = do
+traverseTExpr f (TMultiExpr e t) = do
     e' <- mapM f e
     f $ TMultiExpr e' t
-mapMTExpr f (TConstr e t) = do
-    e'  <- mapMTExpr f e
+traverseTExpr f (TConstr e t) = do
+    e'  <- traverseTExpr f e
     f $ TConstr e' t
-mapMTExpr f (TIfThenElse e1 e2 e3 t) = do
-    e1'  <- mapMTExpr f e1
-    e2'  <- mapMTExpr f e2
-    e3'  <- mapMTExpr f e3
+traverseTExpr f (TIfThenElse e1 e2 e3 t) = do
+    e1'  <- traverseTExpr f e1
+    e2'  <- traverseTExpr f e2
+    e3'  <- traverseTExpr f e3
     f $ TIfThenElse e1' e2' e3' t
-mapMTExpr f (TMatch e1 e2 t) = do
-    e1'  <- mapMTExpr f e1
+traverseTExpr f (TMatch e1 e2 t) = do
+    e1'  <- traverseTExpr f e1
     e2' <- mapM (\(x, y) -> do
-                     y'  <- mapMTExpr f y
+                     y'  <- traverseTExpr f y
                      pure (x, y')) e2
     f $ TMatch e1' e2' t
-mapMTExpr f (TWhile e1 e2 t) = do
-    e1'  <- mapMTExpr f e1
-    e2'  <- mapMTExpr f e2
+traverseTExpr f (TWhile e1 e2 t) = do
+    e1'  <- traverseTExpr f e1
+    e2'  <- traverseTExpr f e2
     f $ TWhile e1' e2' t
-mapMTExpr f (TFunApply e1 e2 t) = do
+traverseTExpr f (TFunApply e1 e2 t) = do
     e2' <- mapM f e2
     f $ TFunApply e1 e2' t
-mapMTExpr f (TLet e1 e2 t) =  do
-    e2'  <- mapMTExpr f e2
+traverseTExpr f (TLet e1 e2 t) =  do
+    e2'  <- traverseTExpr f e2
     f $ TLet e1 e2' t
-mapMTExpr f (TLetRec e1 e2 t) =  do
-    e2'  <- mapMTExpr f e2
+traverseTExpr f (TLetRec e1 e2 t) =  do
+    e2'  <- traverseTExpr f e2
     f $ TLetRec e1 e2' t
-mapMTExpr f (TLetIn e1 e2 e3 t) = do
-    e2'  <- mapMTExpr f e2
-    e3'  <- mapMTExpr f e3
+traverseTExpr f (TLetIn e1 e2 e3 t) = do
+    e2'  <- traverseTExpr f e2
+    e3'  <- traverseTExpr f e3
     f $ TLetIn e1 e2' e3' t
-mapMTExpr f (TTypeDecl e1 e2 t) = do
+traverseTExpr f (TTypeDecl e1 e2 t) = do
   f $ TTypeDecl e1 e2 t
