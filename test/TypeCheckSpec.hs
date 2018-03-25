@@ -59,7 +59,7 @@ typeCheckSpec = do
       , TypeEq (TypeVar "_1") ocamlInt
       , TypeEq (TypeVar "_2") ocamlInt
       , TypeEq (TypeVar "_3") ocamlInt
-      ,TypeOfExpr (TLetIn
+      , TypeOfExpr (TLetIn
                    (FuncPattern {__patType = TypeVar "_0", __sym = Sym {__name = "_f_gen_0"}, __args = [(Sym {__name = "_x_gen_0"}, TypeVar "_1"),(Sym {__name = "_y_gen_0"}, TypeVar "_2")]})
                    (TInfixOpExpr (TVar (Sym {__name = "_x_gen_0"}) (TypeVar "_1")) Mul (TVar (Sym {__name = "_y_gen_0"}) (TypeVar "_2")) (TypeVar "_3"))
                    (TVar (Sym {__name = "_f_gen_0"}) (TypeVar "_0")) (TypeVar "_4"))

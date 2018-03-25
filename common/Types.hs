@@ -228,3 +228,25 @@ instance HasTypeExpr TExpr where
         setter (TLetRec e f _) x = TLetRec e f x
         setter (TLetIn e f g _) x = TLetIn e f g x
         setter (TTypeDecl e f _) x = TTypeDecl e f x
+
+instance AsTExpr Expr where
+    _TExpr  = prism toExpr toTExpr
+      where
+        toExpr :: TExpr -> Expr
+        toExpr (TConstant x _)= Constant x
+        toExpr (TVar x _) = Var x
+        toExpr (TParen x _) = Paren (toExpr x)
+        toExpr (TInfixOpExpr x y z _) = InfixOpExpr (toExpr x) y (toExpr z)
+        toExpr (TBegEnd x _) = BegEnd (toExpr x)
+        toExpr (TMultiExpr x _) = MultiExpr (fmap toExpr x)
+        toExpr (TConstr x _) = Constr (toExpr x)
+        toExpr (TIfThenElse x y z _) = IfThenElse (toExpr x) (toExpr y) (toExpr z)
+        toExpr (TMatch x y _) = Match (toExpr x) (fmap toExpr <$> y)
+        toExpr (TWhile x y _) = While (toExpr x) (toExpr y)
+        toExpr (TFunApply x y _) = FunApply (toExpr x) (fmap toExpr y)
+        toExpr (TLet x y _) = Let x (toExpr y)
+        toExpr (TLetRec x y _) = LetRec x (toExpr y)
+        toExpr (TLetIn x y z _) = LetIn x (toExpr y) (toExpr z)
+        toExpr (TTypeDecl x y _) = TypeDecl x y
+        toTExpr :: Expr -> Either Expr TExpr
+        toTExpr e = Left e

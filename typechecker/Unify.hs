@@ -1,7 +1,7 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
-module Unify (unify) where
+module Unify (unify, traverseTypeExpr) where
 import Types hiding (TVar)
 import CollectTypeConstraints
 import Data.Set as S
@@ -78,7 +78,7 @@ instance TypeVarReplaceable TypeExpr where
 
 instance TypeVarReplaceable TypeConstraint where
   replaceTypeVar from to (TypeEq l r) = TypeEq (replaceTypeVar from to l) (replaceTypeVar from to r)
-  replaceTypeVar from to (TypeOfExpr txpr) = TypeOfExpr $ runIdentity $ mapMTExpr impl txpr
+  replaceTypeVar from to (TypeOfExpr txpr) = TypeOfExpr $ runIdentity $ traverseTExpr impl txpr
     where
       impl :: TExpr -> Identity TExpr
       impl e = let texpr =  e ^. _typeExpr
