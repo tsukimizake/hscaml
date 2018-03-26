@@ -13,49 +13,49 @@ traverseExpr f x@(Constant _) = f x
 traverseExpr f x@(Var _) = f x
 traverseExpr f (Paren e) = do
     e'  <- traverseExpr f e
-    pure $ Paren e'
+    f $ Paren e'
 traverseExpr f (InfixOpExpr e iop g) = do
     e'  <- traverseExpr f e
     g'  <- traverseExpr f g
-    pure $ InfixOpExpr e' iop g'
+    f $ InfixOpExpr e' iop g'
 traverseExpr f (BegEnd e) = do
     e'  <- traverseExpr f e
-    pure $ BegEnd e'
+    f $ BegEnd e'
 traverseExpr f (MultiExpr e) = do
     e' <- mapM f e
-    pure $ MultiExpr e'
+    f $ MultiExpr e'
 traverseExpr f (Constr e) = do
     e'  <- traverseExpr f e
-    pure $ Constr e'
+    f $ Constr e'
 traverseExpr f (IfThenElse e1 e2 e3) = do
     e1'  <- traverseExpr f e1
     e2'  <- traverseExpr f e2
     e3'  <- traverseExpr f e3
-    pure $ IfThenElse e1' e2' e3'
+    f $ IfThenElse e1' e2' e3'
 traverseExpr f (Match e1 e2) = do
     e1'  <- traverseExpr f e1
     e2' <- mapM (\(x, y) -> do
                      y'  <- traverseExpr f y
                      pure (x, y')) e2
-    pure $ Match e1' e2'
+    f $ Match e1' e2'
 traverseExpr f (While e1 e2) = do
     e1'  <- traverseExpr f e1
     e2'  <- traverseExpr f e2
-    pure $ While e1' e2'
+    f $ While e1' e2'
 traverseExpr f (FunApply e1 e2) = do
     e1'  <- traverseExpr f e1
     e2' <- mapM f e2
-    pure $ FunApply e1' e2'
+    f $ FunApply e1' e2'
 traverseExpr f (Let e1 e2) =  do
     e2'  <- traverseExpr f e2
-    pure $ Let e1 e2'
+    f $ Let e1 e2'
 traverseExpr f (LetRec e1 e2) =  do
     e2'  <- traverseExpr f e2
-    pure $ LetRec e1 e2'
+    f $ LetRec e1 e2'
 traverseExpr f (LetIn e1 e2 e3) = do
     e2'  <- traverseExpr f e2
     e3'  <- traverseExpr f e3
-    pure $ LetIn e1 e2' e3'
+    f $ LetIn e1 e2' e3'
 traverseExpr _ (TypeDecl e1 e2) = pure $ TypeDecl e1 e2
 
 traverseTExpr :: (Monad m) => (TExpr -> m TExpr) -> TExpr -> m TExpr
@@ -67,7 +67,7 @@ traverseTExpr f (TParen e t) = do
 traverseTExpr f (TInfixOpExpr e iop g t) = do
     e'  <- traverseTExpr f e
     g'  <- traverseTExpr f g
-    pure $ TInfixOpExpr e' iop g' t
+    f $ TInfixOpExpr e' iop g' t
 traverseTExpr f (TBegEnd e t) = do
     e'  <- traverseTExpr f e
     f $ TBegEnd e' t
@@ -112,23 +112,23 @@ traverseTypeExpr :: (Monad m) => (TypeExpr -> m TypeExpr) -> TypeExpr -> (m Type
 traverseTypeExpr f (l ::-> r) = do
   l' <- traverseTypeExpr f l
   r' <- traverseTypeExpr f r
-  pure (l' ::-> r')
+  f (l' ::-> r')
 traverseTypeExpr f (l ::* r) = do
   l' <- traverseTypeExpr f l
   r' <- traverseTypeExpr f r
-  pure (l' ::* r')
+  f (l' ::* r')
 traverseTypeExpr f (l ::+ r) = do
   l' <- traverseTypeExpr f l
   r' <- traverseTypeExpr f r
-  pure (l' ::+ r')
+  f (l' ::+ r')
 traverseTypeExpr f (ParenTypeExpr inner) = f inner
 traverseTypeExpr f (TypeApplication xs a) = do
   xs' <- mapM (traverseTypeExpr f) xs
   a' <- traverseTypeExpr f a
-  pure $ TypeApplication xs' a'
+  f $ TypeApplication xs' a'
 traverseTypeExpr f x = f x
 
-data TV = TV Text deriving(Show, Eq, Ord)
+data TV = TV Text deriving (Show, Eq, Ord)
 
 class TypeVarReplaceable a where
   replaceTypeVar :: TV -> TypeExpr -> a -> a
@@ -149,6 +149,12 @@ data TypeConstraint =
 
 instance TypeVarReplaceable TypeConstraint where
   replaceTypeVar from to (TypeEq l r) = TypeEq (replaceTypeVar from to l) (replaceTypeVar from to r)
+
+instance TypeVarReplaceable TExpr where
+  replaceTypeVar from@(TV fs) to orig = runIdentity $ (traverseTExpr $ pure . impl) orig
+    where
+      impl :: TExpr -> TExpr
+      impl e = e & _typeExpr .~ (replaceTypeVar from to (e ^. _typeExpr))
 
 toTV :: TypeExpr -> Either CompileError TV
 toTV (TypeVar s) = pure $ TV s
