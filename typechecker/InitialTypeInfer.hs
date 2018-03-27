@@ -115,38 +115,40 @@ initialTypeInferImpl (FunApply e f) = do
   f' <- mapM initialTypeInferImpl f
   t <- genTypeVar Nothing Nothing
   pure $ TFunApply e' f' t
-initialTypeInferImpl (Let e f) = do
+initialTypeInferImpl (Let pat f) = do
+  pat' <- nameTypeVarInPat pat
   f' <- initialTypeInferImpl f
   t <- genTypeVar Nothing Nothing
-  pure $ TLet e f' t
-initialTypeInferImpl (LetRec e f) = do
+  pure $ TLet pat' f' t
+initialTypeInferImpl (LetRec pat f) = do
+  pat' <- nameTypeVarInPat pat
   f' <- initialTypeInferImpl f
   t <- genTypeVar Nothing Nothing
-  pure $ TLetRec e f' t
+  pure $ TLetRec pat' f' t
 initialTypeInferImpl (LetIn pat f g) = do
   pat' <- nameTypeVarInPat pat
   f' <- initialTypeInferImpl f
   g' <- initialTypeInferImpl g
   t <- genTypeVar Nothing Nothing
   pure $ TLetIn pat' f' g' t
-    where
-      nameTypeVarInPat :: Pattern -> MangleTypeVarM Pattern
-      nameTypeVarInPat (VarPattern t s) = do
-        t' <- genTypeVar (Just $ symToText s) Nothing
-        pure $ VarPattern t' s
-      nameTypeVarInPat (FuncPattern t f xs) = do
-        t' <- genTypeVar (Just $ symToText f) Nothing
-        xs' <- forM xs $ \(s, t) -> do
-          (VarPattern t' _) <- nameTypeVarInPat $ VarPattern t s
-          pure (s, t')
-        pure $ FuncPattern t' f xs'
 initialTypeInferImpl (TypeDecl e f) = do
   t <- genTypeVar Nothing Nothing
   pure $ TTypeDecl e f t
 
-initialTypeInfer exp = (initialTypeInferImpl exp) `evalState` initialMangleTypeVarStat
+initialTypeInfer :: Expr -> TExpr
+initialTypeInfer expr = (initialTypeInferImpl expr) `evalState` initialMangleTypeVarStat
 
 initialTypeInferStmt :: Statement -> MangleTypeVarM TStatement
 initialTypeInferStmt (Statement exprs)= do
   texprs <- mapM initialTypeInferImpl exprs
   pure $ TStatement texprs
+nameTypeVarInPat :: Pattern -> MangleTypeVarM Pattern
+nameTypeVarInPat (VarPattern t s) = do
+  t' <- genTypeVar (Just $ symToText s) Nothing
+  pure $ VarPattern t' s
+nameTypeVarInPat (FuncPattern t f xs) = do
+  t' <- genTypeVar (Just $ symToText f) Nothing
+  xs' <- forM xs $ \(s, t) -> do
+    (VarPattern t' _) <- nameTypeVarInPat $ VarPattern t s
+    pure (s, t')
+  pure $ FuncPattern t' f xs'
