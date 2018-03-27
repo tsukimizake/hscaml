@@ -12,13 +12,16 @@ import InitialTypeInfer
 import CollectTypeConstraints
 import Unify
 import SetTypeConstraints
-
+import Debug.Trace
 typeCheck :: Expr -> Either CompileError TExpr
 typeCheck e = do
   let e' = renameSymsByScope e
   let te' = initialTypeInfer e'
+  -- traceM $ show $ te'
   let constraints = collectTypeConstraints te'
+  -- traceM $ show $ constraints
   unified <- unify constraints
+  -- traceM $ show $ unified
   let res = setTypeConstraints unified te'
   pure res
 
