@@ -23,36 +23,40 @@ putTypeConstraint :: TypeConstraint -> CollectTypeConstraintsM ()
 putTypeConstraint tc = do
   modify' (S.insert tc)
 
+collectFromPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncPatternのときはそのシンボルの型を返す
+                   -- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
+collectFromPattern (VarPattern thetype sym) _ = pure Nothing
+collectFromPattern (FuncPattern t f args) rtype = do
+  let functype = buildFuncType rtype (fmap snd args)
+  putTypeConstraint $ TypeEq functype t
+  pure $ Nothing
+    where
+      buildFuncType :: TypeExpr -> [TypeExpr] -> TypeExpr
+      buildFuncType ret [] = ret
+      buildFuncType ret (x:xs) = x ::-> buildFuncType ret xs
+collectFromPattern (ParenPattern theType pat) rtype = do
+  collectFromPattern pat rtype
+collectFromPattern (ConstantPattern _ _) _ = pure Nothing
+collectFromPattern (ListPattern _ _) _ = pure Nothing
+collectFromPattern (OrPattern _ _ _) _ = pure Nothing
 
 collectTypeConstraintsImpl :: TExpr -> CollectTypeConstraintsM TExpr
+collectTypeConstraintsImpl exp@(TIfThenElse cond fst snd t) = do
+  putTypeConstraint $ TypeEq (fst ^. _typeExpr) (snd ^. _typeExpr)
+  putTypeConstraint $ TypeEq (cond ^. _typeExpr) ocamlBool
+  putTypeConstraint $ TypeEq (fst ^. _typeExpr) t
+  pure exp
+collectTypeConstraintsImpl exp@(TLetRec pat impl t) = do
+  _ <- collectFromPattern pat (impl ^. _typeExpr)
+  pure exp
 collectTypeConstraintsImpl exp@(TLetIn pat impl body t) = do
   _ <- collectFromPattern pat (impl ^. _typeExpr)
   putTypeConstraint $ TypeEq (body ^. _typeExpr) t
-  _<-collectTypeConstraintsImpl impl
-  _<-collectTypeConstraintsImpl body
   pure exp
-    where collectFromPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncPatternのときはそのシンボルの型を返す
-          -- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
-          collectFromPattern (VarPattern thetype sym) _ = pure Nothing
-          collectFromPattern (FuncPattern t f args) rtype = do
-            let functype = buildFuncType rtype (fmap snd args)
-            putTypeConstraint $ TypeEq functype t
-            pure $ Nothing
-              where
-                buildFuncType :: TypeExpr -> [TypeExpr] -> TypeExpr
-                buildFuncType ret [] = ret
-                buildFuncType ret (x:xs) = x ::-> buildFuncType ret xs
-          collectFromPattern (ParenPattern theType pat) rtype = do
-            collectFromPattern pat rtype
-          collectFromPattern (ConstantPattern _ _) _ = pure Nothing
-          collectFromPattern (ListPattern _ _) _ = pure Nothing
-          collectFromPattern (OrPattern _ _ _) _ = pure Nothing
 
 collectTypeConstraintsImpl exp@(TFunApply func args t) = do
   let constraintType = makeConstraintType func args t
   putTypeConstraint $ TypeEq constraintType (func ^. _typeExpr)
-  _<-collectTypeConstraintsImpl func
-  mapM_ collectTypeConstraintsImpl args
   pure exp
     where
       makeConstraintType :: TExpr -> [TExpr] -> TypeExpr -> TypeExpr
