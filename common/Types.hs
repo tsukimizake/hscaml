@@ -165,7 +165,7 @@ data Pattern = VarPattern {
     __pat :: Pattern
 }| ListPattern {
     __patType :: TypeExpr,
-    __exprs :: [Expr]
+    __patterns :: [Pattern]
 }| FuncPattern {
     __patType :: TypeExpr,
     __sym :: Sym,

@@ -178,7 +178,7 @@ Pattern :: {Pattern}
   | "(" Pattern ":" TypeExpr ")" {let theType = $4
                                   in ParenPattern theType ($2 & _patType .~ theType)}
   | "(" Pattern ")" {ParenPattern UnspecifiedType $2}
-  | "[" SymList "]" {ListPattern UnspecifiedType (fmap Var $2)}
+  | "[" SymList "]" {ListPattern UnspecifiedType (fmap (VarPattern UnspecifiedType) $2)}
   | downvar SymList {FuncPattern UnspecifiedType (Sym $1) (zip $2 (repeat UnspecifiedType))}
   -- | orpat
 
