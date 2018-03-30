@@ -131,6 +131,12 @@ initialTypeInferImpl (LetIn pat f g) = do
   g' <- initialTypeInferImpl g
   t <- genTypeVar Nothing Nothing
   pure $ TLetIn pat' f' g' t
+initialTypeInferImpl (LetRecIn pat f g) = do
+  pat' <- nameTypeVarInPat pat
+  f' <- initialTypeInferImpl f
+  g' <- initialTypeInferImpl g
+  t <- genTypeVar Nothing Nothing
+  pure $ TLetRecIn pat' f' g' t
 initialTypeInferImpl (TypeDecl e f) = do
   t <- genTypeVar Nothing Nothing
   pure $ TTypeDecl e f t

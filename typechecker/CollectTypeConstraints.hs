@@ -53,7 +53,10 @@ collectTypeConstraintsImpl exp@(TLetIn pat impl body t) = do
   _ <- collectFromPattern pat (impl ^. _typeExpr)
   putTypeConstraint $ TypeEq (body ^. _typeExpr) t
   pure exp
-
+collectTypeConstraintsImpl exp@(TLetRecIn pat impl body t) = do
+  _ <- collectFromPattern pat (impl ^. _typeExpr)
+  putTypeConstraint $ TypeEq (body ^. _typeExpr) t
+  pure exp
 collectTypeConstraintsImpl exp@(TFunApply func args t) = do
   let constraintType = makeConstraintType func args t
   putTypeConstraint $ TypeEq constraintType (func ^. _typeExpr)

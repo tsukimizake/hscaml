@@ -55,6 +55,7 @@ genSym x = do
 -- let x0 = 0
 -- in let x1 = 1
 -- in x1
+-- TODO letがletrecと同じになってるのを修正する したい
 renameSymsByScope :: Expr -> Expr
 renameSymsByScope expr = evalState (impl expr) initialRenameState
   where
@@ -116,6 +117,18 @@ renameSymsByScope expr = evalState (impl expr) initialRenameState
           s' <- popRenameStack . unwrapSym $ s
           pure (s', t)
         pure $ LetIn (FuncPattern t (Sym s') (args')) e1' e2'
+    impl (LetRecIn (FuncPattern t (Sym s) xs) e1 e2) = do
+        s' <- pushAndRenameSym s
+        args' <- forM xs $ \(s, t) -> do
+              s' <- pushAndRenameSym $ unwrapSym $ s
+              pure (Sym s', t)
+        e1' <- impl e1
+        e2' <- impl e2
+        popRenameStack s
+        forM_ xs $ \(s, t) -> do
+          s' <- popRenameStack . unwrapSym $ s
+          pure (s', t)
+        pure $ LetRecIn (FuncPattern t (Sym s') (args')) e1' e2'
     impl (FunApply (V f) args) = do
       f' <- impl $ V f
       args' <- forM args $ \arg -> do

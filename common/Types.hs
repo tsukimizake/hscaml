@@ -50,6 +50,7 @@ data Expr = Constant Value
           | FunApply Expr [Expr]
           | Let Pattern Expr
           | LetRec Pattern Expr
+          | LetRecIn Pattern Expr Expr
           | LetIn Pattern Expr Expr
           | TypeDecl Name [DataCnstr]
           deriving(Show, Eq, Ord)
@@ -69,6 +70,7 @@ data TExpr = TConstant Value TypeExpr
            | TLet Pattern TExpr TypeExpr
            | TLetRec Pattern TExpr TypeExpr
            | TLetIn Pattern TExpr TExpr TypeExpr
+           | TLetRecIn Pattern TExpr TExpr TypeExpr
            | TTypeDecl Name [DataCnstr] TypeExpr
            deriving(Show, Eq, Ord)
 

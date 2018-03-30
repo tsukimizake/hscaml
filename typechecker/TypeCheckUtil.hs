@@ -57,6 +57,10 @@ traverseExpr f (LetIn e1 e2 e3) = do
     e2'  <- traverseExpr f e2
     e3'  <- traverseExpr f e3
     pure $ LetIn e1 e2' e3'
+traverseExpr f (LetRecIn e1 e2 e3) = do
+    e2'  <- traverseExpr f e2
+    e3'  <- traverseExpr f e3
+    pure $ LetRecIn e1 e2' e3'
 traverseExpr f (TypeDecl e1 e2) = f $ TypeDecl e1 e2
 
 traverseTExpr :: (Monad m) => (TExpr -> m TExpr) -> TExpr -> m TExpr
@@ -106,6 +110,10 @@ traverseTExpr f (TLetIn e1 e2 e3 t) = do
     e2'  <- traverseTExpr f e2
     e3'  <- traverseTExpr f e3
     f $ TLetIn e1 e2' e3' t
+traverseTExpr f (TLetRecIn e1 e2 e3 t) = do
+    e2'  <- traverseTExpr f e2
+    e3'  <- traverseTExpr f e3
+    f $ TLetRecIn e1 e2' e3' t
 traverseTExpr f (TTypeDecl e1 e2 t) = do
   f $ TTypeDecl e1 e2 t
 
@@ -151,11 +159,24 @@ data TypeConstraint =
 instance TypeVarReplaceable TypeConstraint where
   replaceTypeVar from to (TypeEq l r) = TypeEq (replaceTypeVar from to l) (replaceTypeVar from to r)
 
+instance TypeVarReplaceable Pattern where
+  replaceTypeVar from to (VarPattern t s) = VarPattern (replaceTypeVar from to t) s
+  replaceTypeVar from to (ConstantPattern t v) = ConstantPattern (replaceTypeVar from to t) v
+  replaceTypeVar from to (ParenPattern t p) = ParenPattern (replaceTypeVar from to t) (replaceTypeVar from to p)
+  replaceTypeVar from to (ListPattern t v) = ListPattern (replaceTypeVar from to t) (fmap (replaceTypeVar from to) v)
+
+
 instance TypeVarReplaceable TExpr where
   replaceTypeVar from@(TV fs) to orig = runIdentity $ (traverseTExpr $ pure . impl) orig
     where
+      replaceInPatterns (TMatch a xs b) = TMatch a (fmap (\(p, e)-> (replaceTypeVar from to p, e)) xs) b
+      replaceInPatterns (TLet p a b) = TLet (replaceTypeVar from to p) a b
+      replaceInPatterns (TLetIn p a b c) = TLetIn (replaceTypeVar from to p) a b c
+      replaceInPatterns (TLetRec p a b) = TLetRec (replaceTypeVar from to p) a b
+      replaceInPatterns (TLetRecIn p a b c) = TLetRecIn (replaceTypeVar from to p) a b c
+      replaceInPatterns x = x
       impl :: TExpr -> TExpr
-      impl e = e & _typeExpr .~ (replaceTypeVar from to (e ^. _typeExpr))
+      impl e = replaceInPatterns $ e & _typeExpr .~ (replaceTypeVar from to (e ^. _typeExpr))
 
 toTV :: TypeExpr -> Either CompileError TV
 toTV (TypeVar s) = pure $ TV s
