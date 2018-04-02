@@ -173,6 +173,7 @@ SymList :: {[Sym]}
 
 Pattern :: {Pattern}
   : Constant {ConstantPattern UnspecifiedType $1}
+  | downvar {VarPattern UnspecifiedType (Sym $1)}
   | "(" Pattern ":" TypeExpr ")" {let theType = $4
                                   in ParenPattern theType ($2 & _patType .~ theType)}
   | "(" Pattern ")" {ParenPattern UnspecifiedType $2}
@@ -184,8 +185,9 @@ PatternList :: {[Pattern]}
   | Pattern PatternList {$1 : $2}
 
 LetPattern :: {LetPattern}
-  : downvar SymList {FuncLetPattern UnspecifiedType (Sym $1) (zip $2 (repeat UnspecifiedType))}
-  | Pattern {LetPatternPattern UnspecifiedType $1}
+  : Pattern {LetPatternPattern UnspecifiedType $1}
+  | downvar SymList {FuncLetPattern UnspecifiedType (Sym $1) (zip $2 (repeat UnspecifiedType))}
+
 
 
 TypeExpr :: {TypeExpr}
