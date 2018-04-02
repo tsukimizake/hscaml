@@ -48,10 +48,10 @@ data Expr = Constant Value
           | Match Expr [(Pattern, Expr)]
           | While Expr Expr
           | FunApply Expr [Expr]
-          | Let Pattern Expr
-          | LetRec Pattern Expr
-          | LetRecIn Pattern Expr Expr
-          | LetIn Pattern Expr Expr
+          | Let LetPattern Expr
+          | LetRec LetPattern Expr
+          | LetRecIn LetPattern Expr Expr
+          | LetIn LetPattern Expr Expr
           | TypeDecl Name [DataCnstr]
           deriving(Show, Eq, Ord)
 
@@ -67,10 +67,10 @@ data TExpr = TConstant Value TypeExpr
            | TMatch TExpr [(Pattern, TExpr)] TypeExpr
            | TWhile TExpr TExpr TypeExpr
            | TFunApply TExpr [TExpr] TypeExpr
-           | TLet Pattern TExpr TypeExpr
-           | TLetRec Pattern TExpr TypeExpr
-           | TLetIn Pattern TExpr TExpr TypeExpr
-           | TLetRecIn Pattern TExpr TExpr TypeExpr
+           | TLet LetPattern TExpr TypeExpr
+           | TLetRec LetPattern TExpr TypeExpr
+           | TLetIn LetPattern TExpr TExpr TypeExpr
+           | TLetRecIn LetPattern TExpr TExpr TypeExpr
            | TTypeDecl Name [DataCnstr] TypeExpr
            deriving(Show, Eq, Ord)
 
@@ -154,27 +154,34 @@ pattern l :%: r = TInfixOpExpr l Mod r (TypeAtom "int" ::-> TypeAtom "int" ::-> 
 data Statement = Statement [Expr] deriving (Show, Eq)
 data TStatement = TStatement [TExpr] deriving (Show, Eq)
 
-data Pattern = VarPattern {
-    __patType :: TypeExpr,
-    __sym :: Sym
-}| ConstantPattern {
-    __patType :: TypeExpr,
-    __val :: Value
-}| ParenPattern {
-    __patType :: TypeExpr,
-    __pat :: Pattern
-}| ListPattern {
-    __patType :: TypeExpr,
-    __patterns :: [Pattern]
-}| FuncPattern {
-    __patType :: TypeExpr,
-    __sym :: Sym,
-    __args :: [(Sym, TypeExpr)]
-}| OrPattern{
-    __patType :: TypeExpr,
-    __left :: Pattern,
-    __right :: Pattern
-} deriving (Show, Eq, Ord)
+data LetPattern =
+ FuncLetPattern {
+  __lpatType :: TypeExpr,
+  __funcsym :: Sym,
+  __args :: [(Sym, TypeExpr)]
+}| LetPatternPattern{
+  __lpatType :: TypeExpr,
+  __pat :: Pattern
+  } deriving (Show, Eq, Ord)
+
+data Pattern =
+  ConstantPattern {
+  __mpatType :: TypeExpr,
+  __val :: Value
+  }| ParenPattern {
+  __mpatType :: TypeExpr,
+  __mpat :: Pattern
+  }| ListPattern {
+  __mpatType :: TypeExpr,
+  __patterns :: [Pattern]
+  }| OrPattern {
+  __mpatType :: TypeExpr,
+  __left :: Pattern,
+  __right :: Pattern
+  }| VarPattern {
+  __mpatType :: TypeExpr,
+  __sym :: Sym
+  } deriving (Show, Eq, Ord)
 
 data Comp = LessThan | LessThanEq | Equal | GreaterThan | GreaterThanEq deriving (Show, Eq, Ord)
 data InfixOp = Mul | Plus | Minus | Div
@@ -185,13 +192,18 @@ data InfixOp = Mul | Plus | Minus | Div
              | Mod
              deriving (Show, Eq, Ord)
 
-
 makeLenses ''Sym
 makePrisms ''Expr
 makeClassyFor "HasTypeExpr" "_typeExpr" [] ''TypeExpr
+makeClassyFor "HasPatType" "_patType" [] ''TypeExpr
+makeLenses ''LetPattern
 makeLenses ''Pattern
 makeLenses ''TExpr
 makeClassyPrisms ''TExpr
+instance HasPatType LetPattern where
+  _patType = _lpatType
+instance HasPatType Pattern where
+  _patType = _mpatType
 
 instance HasTypeExpr TExpr where
     _typeExpr :: Lens' TExpr TypeExpr
@@ -212,6 +224,7 @@ instance HasTypeExpr TExpr where
         getter (TLet _ _ x) = x
         getter (TLetRec _ _ x) = x
         getter (TLetIn _ _ _ x) = x
+        getter (TLetRecIn _ _ _ x) = x
         getter (TTypeDecl _ _ x) = x
         setter :: TExpr -> TypeExpr -> TExpr
         setter (TConstant e _) x = TConstant e x
@@ -228,6 +241,7 @@ instance HasTypeExpr TExpr where
         setter (TLet e f _) x = TLet e f x
         setter (TLetRec e f _) x = TLetRec e f x
         setter (TLetIn e f g _) x = TLetIn e f g x
+        setter (TLetRecIn e f g _) x = TLetRecIn e f g x
         setter (TTypeDecl e f _) x = TTypeDecl e f x
 
 instance AsTExpr Expr where
@@ -248,6 +262,7 @@ instance AsTExpr Expr where
         toExpr (TLet x y _) = Let x (toExpr y)
         toExpr (TLetRec x y _) = LetRec x (toExpr y)
         toExpr (TLetIn x y z _) = LetIn x (toExpr y) (toExpr z)
+        toExpr (TLetRecIn x y z _) = LetRecIn x (toExpr y) (toExpr z)
         toExpr (TTypeDecl x y _) = TypeDecl x y
         toTExpr :: Expr -> Either Expr TExpr
         toTExpr e = Left e

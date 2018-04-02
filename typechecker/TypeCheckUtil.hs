@@ -160,11 +160,12 @@ instance TypeVarReplaceable TypeConstraint where
   replaceTypeVar from to (TypeEq l r) = TypeEq (replaceTypeVar from to l) (replaceTypeVar from to r)
 
 instance TypeVarReplaceable Pattern where
-  replaceTypeVar from to (VarPattern t s) = VarPattern (replaceTypeVar from to t) s
   replaceTypeVar from to (ConstantPattern t v) = ConstantPattern (replaceTypeVar from to t) v
   replaceTypeVar from to (ParenPattern t p) = ParenPattern (replaceTypeVar from to t) (replaceTypeVar from to p)
   replaceTypeVar from to (ListPattern t v) = ListPattern (replaceTypeVar from to t) (fmap (replaceTypeVar from to) v)
-
+  replaceTypeVar from to (VarPattern t s) = VarPattern (replaceTypeVar from to t) s
+instance TypeVarReplaceable LetPattern where
+  replaceTypeVar _ = undefined
 
 instance TypeVarReplaceable TExpr where
   replaceTypeVar from@(TV fs) to orig = runIdentity $ (traverseTExpr $ pure . impl) orig

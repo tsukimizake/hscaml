@@ -91,11 +91,11 @@ Expr :: {Expr}
   | Expr "&&" Expr {$1 :&& $3}
   | Expr "||" Expr {$1 :|| $3}
   | Expr "%" Expr {$1 :% $3}
-  | "let" Pattern "=" Expr {Let $2 $4}
-  | "let" "rec" Pattern "=" Expr {LetRec $3 $5}
-  | "let" Pattern "=" Expr "in" Expr {LetIn $2 $4 $6}
-  | "let" "rec" Pattern "=" Expr "in" Expr {LetRecIn $3 $5 $7}
-  | "fun" SymList "->" Expr {LetIn (FuncPattern UnspecifiedType (Sym (T.pack "fun")) (zip $2 (repeat UnspecifiedType))) $4 $4}
+  | "let" LetPattern "=" Expr {Let $2 $4}
+  | "let" "rec" LetPattern "=" Expr {LetRec $3 $5}
+  | "let" LetPattern "=" Expr "in" Expr {LetIn $2 $4 $6}
+  | "let" "rec" LetPattern "=" Expr "in" Expr {LetRecIn $3 $5 $7}
+  | "fun" SymList "->" Expr {LetIn (FuncLetPattern UnspecifiedType (Sym (T.pack "fun")) (zip $2 (repeat UnspecifiedType))) $4 $4}
   | Expr "*" Expr {$1 :* $3}
   | Expr "/" Expr {$1 :/ $3}
   | Expr "*." Expr {$1 :*. $3}
@@ -172,15 +172,20 @@ SymList :: {[Sym]}
   : DownvarList {fmap Sym $1}
 
 Pattern :: {Pattern}
-  : downvar {VarPattern UnspecifiedType (Sym $1)}
-
-  | Constant {ConstantPattern UnspecifiedType $1}
+  : Constant {ConstantPattern UnspecifiedType $1}
   | "(" Pattern ":" TypeExpr ")" {let theType = $4
                                   in ParenPattern theType ($2 & _patType .~ theType)}
   | "(" Pattern ")" {ParenPattern UnspecifiedType $2}
-  | "[" SymList "]" {ListPattern UnspecifiedType (fmap (VarPattern UnspecifiedType) $2)}
-  | downvar SymList {FuncPattern UnspecifiedType (Sym $1) (zip $2 (repeat UnspecifiedType))}
+  | "[" PatternList "]" {ListPattern UnspecifiedType $2}
   -- | orpat
+
+PatternList :: {[Pattern]}
+  : Pattern {[$1]}
+  | Pattern PatternList {$1 : $2}
+
+LetPattern :: {LetPattern}
+  : downvar SymList {FuncLetPattern UnspecifiedType (Sym $1) (zip $2 (repeat UnspecifiedType))}
+  | Pattern {LetPatternPattern UnspecifiedType $1}
 
 
 TypeExpr :: {TypeExpr}

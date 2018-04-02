@@ -23,10 +23,10 @@ putTypeConstraint :: TypeConstraint -> CollectTypeConstraintsM ()
 putTypeConstraint tc = do
   modify' (S.insert tc)
 
-collectFromPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncPatternのときはそのシンボルの型を返す
+collectFromLetPattern :: LetPattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncLetPatternのときはそのシンボルの型を返す
                    -- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
-collectFromPattern (VarPattern thetype sym) _ = pure Nothing
-collectFromPattern (FuncPattern t f args) rtype = do
+collectFromLetPattern (LetPatternPattern t mpat) rtype = collectFromMatchPattern mpat rtype
+collectFromLetPattern (FuncLetPattern t f args) rtype = do
   let functype = buildFuncType rtype (fmap snd args)
   putTypeConstraint $ TypeEq functype t
   pure $ Nothing
@@ -34,11 +34,14 @@ collectFromPattern (FuncPattern t f args) rtype = do
       buildFuncType :: TypeExpr -> [TypeExpr] -> TypeExpr
       buildFuncType ret [] = ret
       buildFuncType ret (x:xs) = x ::-> buildFuncType ret xs
-collectFromPattern (ParenPattern theType pat) rtype = do
-  collectFromPattern pat rtype
-collectFromPattern (ConstantPattern _ _) _ = pure Nothing
-collectFromPattern (ListPattern _ _) _ = pure Nothing
-collectFromPattern (OrPattern _ _ _) _ = pure Nothing
+
+collectFromMatchPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint)
+collectFromMatchPattern (ConstantPattern _ _) _ = pure Nothing
+collectFromMatchPattern (ListPattern _ _) _ = pure Nothing
+collectFromMatchPattern (OrPattern _ _ _) _ = pure Nothing
+collectFromMatchPattern (ParenPattern theType pat) rtype = do
+  putTypeConstraint $ TypeEq (pat ^. _patType) theType
+  collectFromMatchPattern pat rtype
 
 collectTypeConstraintsImpl :: TExpr -> CollectTypeConstraintsM TExpr
 collectTypeConstraintsImpl exp@(TIfThenElse cond fst snd t) = do
@@ -47,14 +50,14 @@ collectTypeConstraintsImpl exp@(TIfThenElse cond fst snd t) = do
   putTypeConstraint $ TypeEq (fst ^. _typeExpr) t
   pure exp
 collectTypeConstraintsImpl exp@(TLetRec pat impl t) = do
-  _ <- collectFromPattern pat (impl ^. _typeExpr)
+  _ <- collectFromLetPattern pat (impl ^. _typeExpr)
   pure exp
 collectTypeConstraintsImpl exp@(TLetIn pat impl body t) = do
-  _ <- collectFromPattern pat (impl ^. _typeExpr)
+  _ <- collectFromLetPattern pat (impl ^. _typeExpr)
   putTypeConstraint $ TypeEq (body ^. _typeExpr) t
   pure exp
 collectTypeConstraintsImpl exp@(TLetRecIn pat impl body t) = do
-  _ <- collectFromPattern pat (impl ^. _typeExpr)
+  _ <- collectFromLetPattern pat (impl ^. _typeExpr)
   putTypeConstraint $ TypeEq (body ^. _typeExpr) t
   pure exp
 collectTypeConstraintsImpl exp@(TFunApply func args t) = do

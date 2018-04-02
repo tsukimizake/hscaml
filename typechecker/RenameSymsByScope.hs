@@ -65,24 +65,23 @@ renameSymsByScope expr = evalState (impl expr) initialRenameState
         let newname = stack ^. at s & fromJust & head
         pure $ V newname
     impl x@(IntC _) = pure $ x
-    impl (Let (VarPattern t (Sym s)) e) = do
+    impl (Let (LetPatternPattern t1 (VarPattern t (Sym s))) e) = do
         s' <- pushAndRenameSym s
         e' <- impl e
         popRenameStack s
-        pure (Let (VarPattern t (Sym s')) e')
-    impl (LetRec (VarPattern t (Sym s)) e) = do
+        pure (Let (LetPatternPattern t1 (VarPattern t (Sym s'))) e')
+    impl (LetRec (LetPatternPattern t1 (VarPattern t (Sym s))) e) = do
         s' <- pushAndRenameSym s
         e' <- impl e
         popRenameStack s
-        pure (LetRec (VarPattern t (Sym s')) e')
-    impl (LetIn (VarPattern t (Sym s)) e1 e2) = do
+        pure (LetRec (LetPatternPattern t1 (VarPattern t (Sym s'))) e')
+    impl (LetIn (LetPatternPattern t1 (VarPattern t (Sym s))) e1 e2) = do
         s' <- pushAndRenameSym s
         e1' <- impl e1
         e2' <- impl e2
         popRenameStack s
-        pure (LetIn (VarPattern t (Sym s')) e1' e2')
-
-    impl (Let (FuncPattern t (Sym s) xs) e) = do
+        pure (LetIn (LetPatternPattern t1 (VarPattern t (Sym s'))) e1' e2')
+    impl (Let (FuncLetPattern t (Sym s) xs) e) = do
         s' <- pushAndRenameSym s
         args' <- forM xs $ \(s, t) -> do
           s' <- pushAndRenameSym $ unwrapSym $ s
@@ -92,8 +91,8 @@ renameSymsByScope expr = evalState (impl expr) initialRenameState
         forM_ xs $ \(s, t) -> do
           s' <- popRenameStack . unwrapSym $ s
           pure (s', t)
-        pure $ Let (FuncPattern t (Sym s') (args')) e'
-    impl (LetRec (FuncPattern t (Sym s) xs) e) = do
+        pure $ Let (FuncLetPattern t (Sym s') (args')) e'
+    impl (LetRec (FuncLetPattern t (Sym s) xs) e) = do
         s' <- pushAndRenameSym s
         args' <- forM xs $ \(s, t) -> do
               s' <- pushAndRenameSym $ unwrapSym $ s
@@ -103,9 +102,9 @@ renameSymsByScope expr = evalState (impl expr) initialRenameState
         forM_ xs $ \(s, t) -> do
           s' <- popRenameStack . unwrapSym $ s
           pure (s', t)
-        pure $ LetRec (FuncPattern t (Sym s') args') e'
+        pure $ LetRec (FuncLetPattern t (Sym s') args') e'
 
-    impl (LetIn (FuncPattern t (Sym s) xs) e1 e2) = do
+    impl (LetIn (FuncLetPattern t (Sym s) xs) e1 e2) = do
         s' <- pushAndRenameSym s
         args' <- forM xs $ \(s, t) -> do
               s' <- pushAndRenameSym $ unwrapSym $ s
@@ -116,8 +115,8 @@ renameSymsByScope expr = evalState (impl expr) initialRenameState
         forM_ xs $ \(s, t) -> do
           s' <- popRenameStack . unwrapSym $ s
           pure (s', t)
-        pure $ LetIn (FuncPattern t (Sym s') (args')) e1' e2'
-    impl (LetRecIn (FuncPattern t (Sym s) xs) e1 e2) = do
+        pure $ LetIn (FuncLetPattern t (Sym s') (args')) e1' e2'
+    impl (LetRecIn (FuncLetPattern t (Sym s) xs) e1 e2) = do
         s' <- pushAndRenameSym s
         args' <- forM xs $ \(s, t) -> do
               s' <- pushAndRenameSym $ unwrapSym $ s
@@ -128,7 +127,7 @@ renameSymsByScope expr = evalState (impl expr) initialRenameState
         forM_ xs $ \(s, t) -> do
           s' <- popRenameStack . unwrapSym $ s
           pure (s', t)
-        pure $ LetRecIn (FuncPattern t (Sym s') (args')) e1' e2'
+        pure $ LetRecIn (FuncLetPattern t (Sym s') (args')) e1' e2'
     impl (FunApply (V f) args) = do
       f' <- impl $ V f
       args' <- forM args $ \arg -> do

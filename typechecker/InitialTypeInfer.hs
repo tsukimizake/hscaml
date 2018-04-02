@@ -116,23 +116,23 @@ initialTypeInferImpl (FunApply e f) = do
   t <- genTypeVar Nothing Nothing
   pure $ TFunApply e' f' t
 initialTypeInferImpl (Let pat f) = do
-  pat' <- nameTypeVarInPat pat
+  pat' <- nameTypeVarInLetPat pat
   f' <- initialTypeInferImpl f
   t <- genTypeVar Nothing Nothing
   pure $ TLet pat' f' t
 initialTypeInferImpl (LetRec pat f) = do
-  pat' <- nameTypeVarInPat pat
+  pat' <- nameTypeVarInLetPat pat
   f' <- initialTypeInferImpl f
   t <- genTypeVar Nothing Nothing
   pure $ TLetRec pat' f' t
 initialTypeInferImpl (LetIn pat f g) = do
-  pat' <- nameTypeVarInPat pat
+  pat' <- nameTypeVarInLetPat pat
   f' <- initialTypeInferImpl f
   g' <- initialTypeInferImpl g
   t <- genTypeVar Nothing Nothing
   pure $ TLetIn pat' f' g' t
 initialTypeInferImpl (LetRecIn pat f g) = do
-  pat' <- nameTypeVarInPat pat
+  pat' <- nameTypeVarInLetPat pat
   f' <- initialTypeInferImpl f
   g' <- initialTypeInferImpl g
   t <- genTypeVar Nothing Nothing
@@ -148,13 +148,13 @@ initialTypeInferStmt :: Statement -> MangleTypeVarM TStatement
 initialTypeInferStmt (Statement exprs)= do
   texprs <- mapM initialTypeInferImpl exprs
   pure $ TStatement texprs
-nameTypeVarInPat :: Pattern -> MangleTypeVarM Pattern
-nameTypeVarInPat (VarPattern t s) = do
+nameTypeVarInLetPat :: LetPattern -> MangleTypeVarM LetPattern
+nameTypeVarInLetPat (LetPatternPattern t1 (VarPattern t s)) = do
   t' <- genTypeVar (Just $ symToText s) Nothing
-  pure $ VarPattern t' s
-nameTypeVarInPat (FuncPattern t f xs) = do
+  pure $ LetPatternPattern t1 (VarPattern t' s)
+nameTypeVarInLetPat (FuncLetPattern t f xs) = do
   t' <- genTypeVar (Just $ symToText f) Nothing
   xs' <- forM xs $ \(s, t) -> do
-    (VarPattern t' _) <- nameTypeVarInPat $ VarPattern t s
+    (LetPatternPattern _ (VarPattern t' _)) <- nameTypeVarInLetPat $ LetPatternPattern UnspecifiedType (VarPattern t s)
     pure (s, t')
-  pure $ FuncPattern t' f xs'
+  pure $ FuncLetPattern t' f xs'
