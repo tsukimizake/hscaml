@@ -165,7 +165,8 @@ instance TypeVarReplaceable Pattern where
   replaceTypeVar from to (ListPattern t v) = ListPattern (replaceTypeVar from to t) (fmap (replaceTypeVar from to) v)
   replaceTypeVar from to (VarPattern t s) = VarPattern (replaceTypeVar from to t) s
 instance TypeVarReplaceable LetPattern where
-  replaceTypeVar _ = undefined
+  replaceTypeVar from to (FuncLetPattern t f xs) = (FuncLetPattern (replaceTypeVar from to t) f (fmap (replaceTypeVar from to) <$> xs))
+  replaceTypeVar from to (LetPatternPattern t s) = (LetPatternPattern (replaceTypeVar from to t) (replaceTypeVar from to s))
 
 instance TypeVarReplaceable TExpr where
   replaceTypeVar from@(TV fs) to orig = runIdentity $ (traverseTExpr $ pure . impl) orig

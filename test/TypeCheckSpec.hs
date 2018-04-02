@@ -68,7 +68,17 @@ typeCheckSpec = do
       , TypeEq (TypeVar "_1") (TypeVar "_6")
       ]
   collectConstraintsSpec "let rec f x = if x = 0 then 1 else x * f (x-1)"
-    []
+    [TypeEq {__lhs = TypeAtom "int", __rhs = TypeAtom "int"},
+     TypeEq {__lhs = TypeAtom "int", __rhs = TypeVar "_6"},
+     TypeEq {__lhs = TypeAtom "int", __rhs = TypeVar "_7"},
+     TypeEq {__lhs = TypeVar "_1" ::-> TypeVar "_7", __rhs = TypeVar "_0"},
+     TypeEq {__lhs = TypeVar "_4" ::-> TypeVar "_5", __rhs = TypeVar "_0"},
+     TypeEq {__lhs = TypeVar "_1", __rhs = TypeAtom "int"},
+     TypeEq {__lhs = TypeVar "_2", __rhs = TypeAtom "bool"},
+     TypeEq {__lhs = TypeVar "_3", __rhs = TypeAtom "int"},
+     TypeEq {__lhs = TypeVar "_3", __rhs = TypeVar "_4"},
+     TypeEq {__lhs = TypeVar "_5", __rhs = TypeAtom "int"},
+     TypeEq {__lhs = TypeVar "_6", __rhs = TypeAtom "int"}]
   describe "typecheck" $ do
     testTypeCheckExpr "let f x y = x*y in f"
       (TLetIn
