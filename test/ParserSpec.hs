@@ -78,6 +78,17 @@ parserSpec = do
                (Sym "f") [(Sym "x", UnspecifiedType),  (Sym "y", UnspecifiedType)])
               ((V "x") :* (V "y"))
               (V "f"))
+        testParser "let f x y = x*y in 1;2;f;"
+          (LetIn
+              (FuncLetPattern
+               UnspecifiedType
+               (Sym "f") [(Sym "x", UnspecifiedType),  (Sym "y", UnspecifiedType)])
+              ((V "x") :* (V "y"))
+              (MultiExpr
+               [
+                 IntC 1,
+                 IntC 2,
+                 (V "f")]))
         testParser "let f g h x = (f g) (h x) in g"
           (LetIn
           (FuncLetPattern

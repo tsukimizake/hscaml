@@ -104,6 +104,11 @@ Expr :: {Expr}
   | "if" Expr "then" Expr "else" Expr {IfThenElse $2 $4 $6}
   | "match" Expr "with" MatchPats {Match $2 $4}
   | ArgExpr {$1}
+  | ExprList {MultiExpr $1}
+
+ExprList :: {[Expr]}
+  : Expr ";" {[$1]}
+  | Expr ";" ExprList {$1 : $3}
 
 MatchPats :: {[(Pattern, Expr)]}
   : MatchPat {[$1]}
