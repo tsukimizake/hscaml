@@ -57,6 +57,8 @@ qvar {QuotedTokenVar $$}
 "begin" {TokenBegin}
 "end" {TokenEnd}
 ";;" {TokenDoubleSemicolon}
+"[|" {TokenOPipeBracket}
+"|]" {TokenCPipeBracket}
 
 %right "="
 %left "+" "-" "+." "-."
@@ -105,8 +107,8 @@ Expr :: {Expr}
   | "match" Expr "with" MatchPats {Match $2 $4}
   | ArgExpr {$1}
   | ExprList {MultiExpr $1}
-
--- List :: {[]}
+  | "[" ExprList "]" {Types.List $2}
+  | "[|" ExprList "|]" {Array $2}
 
 ExprList :: {[Expr]}
   : Expr ";" {[$1]}

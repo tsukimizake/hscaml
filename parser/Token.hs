@@ -84,4 +84,6 @@ data Token
  | TokenSemicolon
  | TokenDoubleSemicolon
  | TokenPipe
+ | TokenOPipeBracket
+ | TokenCPipeBracket
  deriving (Eq, Show)

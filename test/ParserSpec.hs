@@ -112,6 +112,20 @@ parserSpec = do
            (V "x" :+ V "y")
            (V "x" :+ V "y")
           )
+        testParser "[a;3;b;]"
+          (Types.List
+          [
+            V "a",
+            IntC 3,
+            V "b"
+          ])
+        testParser "[|a;3;b;|]"
+          (Array
+          [
+            V "a",
+            IntC 3,
+            V "b"
+          ])
     describe "parseStatement" $ do
         it  "hoge ;; huga ;; " $ parseStatement "hoge ;; huga ;; "
             `shouldBe` (Statement [V "hoge", V "huga"])

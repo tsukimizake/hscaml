@@ -51,6 +51,8 @@ tokens :-
   ";;"  {tok TokenDoubleSemicolon}
   "->" {tok TokenRArrow}
   "|"  {tok TokenPipe}
+  "[|" {tok TokenOPipeBracket}
+  "|]" {tok TokenCPipeBracket}
   as     {tok TokenAs}
   assert     {tok TokenAssert}
   asr     {tok TokenAsr}
