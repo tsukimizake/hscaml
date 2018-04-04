@@ -13,6 +13,8 @@ import CollectTypeConstraints
 import Unify
 import SetTypeConstraints
 import Debug.Trace
+import CheckTypeCheckIsFinished
+
 typeCheck :: Expr -> Either CompileError TExpr
 typeCheck e = do
   let e' = renameSymsByScope e
@@ -22,8 +24,8 @@ typeCheck e = do
   -- traceM $ show $ constraints
   unified <- unify constraints
   -- traceM $ show $ unified
-  let res = setTypeConstraints unified te'
-  pure res
+  let typevarReplaced = setTypeConstraints unified te'
+  checkTypeCheckIsFinished typevarReplaced
 
 traceTexpr :: String -> IO ()
 traceTexpr s = do
