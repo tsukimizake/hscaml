@@ -62,6 +62,12 @@ traverseExpr f (LetRecIn e1 e2 e3) = do
     e3'  <- traverseExpr f e3
     pure $ LetRecIn e1 e2' e3'
 traverseExpr f (TypeDecl e1 e2) = f $ TypeDecl e1 e2
+traverseExpr f (Types.List xs) = do
+  xs' <- mapM (traverseExpr f) xs
+  pure $ Types.List xs'
+traverseExpr f (Array xs) = do
+  xs' <- mapM (traverseExpr f) xs
+  pure $ Array xs'
 
 traverseTExpr :: (Monad m) => (TExpr -> m TExpr) -> TExpr -> m TExpr
 traverseTExpr f x@(TConstant _ _) = f x
@@ -116,6 +122,12 @@ traverseTExpr f (TLetRecIn e1 e2 e3 t) = do
     f $ TLetRecIn e1 e2' e3' t
 traverseTExpr f (TTypeDecl e1 e2 t) = do
   f $ TTypeDecl e1 e2 t
+traverseTExpr f (Types.TList xs t) = do
+  xs' <- mapM (traverseTExpr f) xs
+  f $ Types.TList xs' t
+traverseTExpr f (TArray xs t) = do
+  xs' <- mapM (traverseTExpr f) xs
+  f $ TArray xs' t
 
 traverseTypeExpr :: (Monad m) => (TypeExpr -> m TypeExpr) -> TypeExpr -> (m TypeExpr)
 traverseTypeExpr f (l ::-> r) = do
@@ -164,6 +176,7 @@ instance TypeVarReplaceable Pattern where
   replaceTypeVar from to (ParenPattern t p) = ParenPattern (replaceTypeVar from to t) (replaceTypeVar from to p)
   replaceTypeVar from to (ListPattern t v) = ListPattern (replaceTypeVar from to t) (fmap (replaceTypeVar from to) v)
   replaceTypeVar from to (VarPattern t s) = VarPattern (replaceTypeVar from to t) s
+  replaceTypeVar from to (OrPattern t l r) = undefined
 
 instance TypeVarReplaceable LetPattern where
   replaceTypeVar from to (FuncLetPattern t f xs) = (FuncLetPattern (replaceTypeVar from to t) f (fmap (replaceTypeVar from to) <$> xs))

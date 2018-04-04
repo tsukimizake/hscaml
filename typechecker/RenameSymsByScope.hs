@@ -60,7 +60,7 @@ renameSymsByScope :: Expr -> Expr
 renameSymsByScope expr = evalState (impl expr) initialRenameState
   where
     impl :: Expr -> State RenameState Expr
-    impl (V s) = do
+    impl (Var (Sym s)) = do
         stack <- use renameStack
         let newname = stack ^. at s & fromJust & head
         pure $ V newname
@@ -133,4 +133,20 @@ renameSymsByScope expr = evalState (impl expr) initialRenameState
       args' <- forM args $ \arg -> do
         impl arg
       pure $ FunApply f' args'
-    impl e = traverseExpr impl e
+    impl e@(Constant _) = traverseExpr impl e
+    impl e@(Paren _) = traverseExpr impl e
+    impl e@(InfixOpExpr _ _ _) = traverseExpr impl e
+    impl e@(BegEnd _ ) =traverseExpr impl e
+    impl e@(MultiExpr _ ) =traverseExpr impl e
+    impl e@(Constr _ ) =traverseExpr impl e
+    impl e@(Match _ _) =traverseExpr impl e
+    impl e@(While _ _) =traverseExpr impl e
+    impl e@(IfThenElse _ _ _) =traverseExpr impl e
+    impl e@(FunApply _ _) =traverseExpr impl e
+    impl e@(Let (LetPatternPattern _ _) _) = traverseExpr impl e
+    impl e@(LetIn (LetPatternPattern _ _) _ _) = traverseExpr impl e
+    impl e@(LetRec (LetPatternPattern _ _) _) = traverseExpr impl e
+    impl e@(LetRecIn (LetPatternPattern _ _) _ _) = traverseExpr impl e
+    impl e@(TypeDecl _ _) = traverseExpr impl e
+    impl e@(Types.List _) = traverseExpr impl e
+    impl e@(Array _) = traverseExpr impl e

@@ -105,3 +105,5 @@ typeCheckSpec = do
        )
        ocamlInt
       )
+    -- testTypeCheckExpr "let rec length xs =  match xs with  | [] -> 0  | y::ys -> 1+length ys;;"
+    --   ()

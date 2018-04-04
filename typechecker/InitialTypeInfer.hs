@@ -27,6 +27,7 @@ data MangleTypeVarStat = MangleTypeVarStat{
   __varName :: Map SymName TypeName
   }deriving(Show)
 
+initialMangleTypeVarStat :: MangleTypeVarStat
 initialMangleTypeVarStat = MangleTypeVarStat 0 M.empty
 
 type MangleTypeVarM a = State MangleTypeVarStat a
@@ -140,6 +141,14 @@ initialTypeInferImpl (LetRecIn pat f g) = do
 initialTypeInferImpl (TypeDecl e f) = do
   t <- genTypeVar Nothing Nothing
   pure $ TTypeDecl e f t
+initialTypeInferImpl (List xs) = do
+  t <- genTypeVar Nothing Nothing
+  ys <- mapM initialTypeInferImpl xs :: MangleTypeVarM [TExpr]
+  pure $ TList ys t
+initialTypeInferImpl (Array xs) = do
+  t <- genTypeVar Nothing Nothing
+  ys <- mapM initialTypeInferImpl xs :: MangleTypeVarM [TExpr]
+  pure $ TArray ys t
 
 initialTypeInfer :: Expr -> TExpr
 initialTypeInfer expr = (initialTypeInferImpl expr) `evalState` initialMangleTypeVarStat
@@ -152,6 +161,8 @@ nameTypeVarInLetPat :: LetPattern -> MangleTypeVarM LetPattern
 nameTypeVarInLetPat (LetPatternPattern t1 (VarPattern t s)) = do
   t' <- genTypeVar (Just $ symToText s) Nothing
   pure $ LetPatternPattern t' (VarPattern t' s)
+nameTypeVarInLetPat e@(LetPatternPattern _ _) =
+  pure e
 nameTypeVarInLetPat (FuncLetPattern t f xs) = do
   t' <- genTypeVar (Just $ symToText f) Nothing
   xs' <- forM xs $ \(s, t) -> do

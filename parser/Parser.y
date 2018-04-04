@@ -106,6 +106,8 @@ Expr :: {Expr}
   | ArgExpr {$1}
   | ExprList {MultiExpr $1}
 
+-- List :: {[]}
+
 ExprList :: {[Expr]}
   : Expr ";" {[$1]}
   | Expr ";" ExprList {$1 : $3}
