@@ -151,7 +151,7 @@ initialTypeInferStmt (Statement exprs)= do
 nameTypeVarInLetPat :: LetPattern -> MangleTypeVarM LetPattern
 nameTypeVarInLetPat (LetPatternPattern t1 (VarPattern t s)) = do
   t' <- genTypeVar (Just $ symToText s) Nothing
-  pure $ LetPatternPattern t1 (VarPattern t' s)
+  pure $ LetPatternPattern t' (VarPattern t' s)
 nameTypeVarInLetPat (FuncLetPattern t f xs) = do
   t' <- genTypeVar (Just $ symToText f) Nothing
   xs' <- forM xs $ \(s, t) -> do

@@ -114,7 +114,7 @@ pattern (:%) :: Expr -> Expr -> Expr
 pattern l :%  r = InfixOpExpr l Mod r
 
 pattern TIntC :: Int -> TExpr
-pattern TIntC x = TConstant (IntVal x) (TypeAtom "Bool")
+pattern TIntC x = TConstant (IntVal x) (TypeAtom "int")
 pattern TBoolC :: Bool -> TExpr
 pattern TBoolC x = TConstant (BoolVal x) (TypeAtom "Bool")
 
@@ -135,15 +135,15 @@ pattern l :-.: r = TInfixOpExpr l MinusDot r (TypeAtom "float")
 pattern (:/.:) :: TExpr -> TExpr -> TExpr
 pattern l :/.: r = TInfixOpExpr l DivDot r (TypeAtom "float")
 pattern (:<:) :: TExpr -> TExpr -> TExpr
-pattern l :<: r = TInfixOpExpr l (Compare LessThan) r (TypeAtom "int")
+pattern l :<: r = TInfixOpExpr l (Compare LessThan) r (TypeAtom "bool")
 pattern (:<=:) :: TExpr -> TExpr -> TExpr
-pattern l :<=: r = TInfixOpExpr l (Compare LessThanEq) r (TypeAtom "int")
+pattern l :<=: r = TInfixOpExpr l (Compare LessThanEq) r (TypeAtom "bool")
 pattern (:==:) :: TExpr -> TExpr -> TExpr
-pattern l :==: r = TInfixOpExpr l (Compare Equal) r (TypeAtom "int")
+pattern l :==: r = TInfixOpExpr l (Compare Equal) r (TypeAtom "bool")
 pattern (:>:) :: TExpr -> TExpr -> TExpr
-pattern l :>: r = TInfixOpExpr l (Compare GreaterThan) r (TypeAtom "int")
+pattern l :>: r = TInfixOpExpr l (Compare GreaterThan) r (TypeAtom "bool")
 pattern (:>=:) :: TExpr -> TExpr -> TExpr
-pattern l :>=: r = TInfixOpExpr l (Compare GreaterThanEq) r (TypeAtom "int")
+pattern l :>=: r = TInfixOpExpr l (Compare GreaterThanEq) r (TypeAtom "bool")
 pattern (:&&:) :: TExpr -> TExpr -> TExpr
 pattern l :&&: r = TInfixOpExpr l BoolAnd r (TypeAtom "bool")
 pattern (:||:) :: TExpr -> TExpr -> TExpr

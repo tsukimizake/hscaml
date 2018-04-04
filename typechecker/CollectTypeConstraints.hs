@@ -39,6 +39,9 @@ collectFromMatchPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe
 collectFromMatchPattern (ConstantPattern _ _) _ = pure Nothing
 collectFromMatchPattern (ListPattern _ _) _ = pure Nothing
 collectFromMatchPattern (OrPattern _ _ _) _ = pure Nothing
+collectFromMatchPattern (VarPattern theType sym) rtype = do
+  putTypeConstraint $ TypeEq theType rtype
+  pure Nothing
 collectFromMatchPattern (ParenPattern theType pat) rtype = do
   putTypeConstraint $ TypeEq (pat ^. _patType) theType
   collectFromMatchPattern pat rtype
@@ -97,6 +100,10 @@ collectTypeConstraintsImpl exp@(TInfixOpExpr l op r t)
     where
       isComp (Compare _) = True
       isComp _ = False
+collectTypeConstraintsImpl exp@(TMultiExpr xs t) = do
+  let last = xs !! (length xs - 1)
+  putTypeConstraint $ TypeEq (last ^. _typeExpr) t
+  pure exp
 collectTypeConstraintsImpl exp = pure exp
 
 collectTypeConstraints :: TExpr -> Set TypeConstraint

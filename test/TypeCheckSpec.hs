@@ -88,3 +88,20 @@ typeCheckSpec = do
         (TVar (Sym "_x_gen_0") ocamlInt :*: TVar (Sym "_y_gen_0") ocamlInt)
         (TVar (Sym "_f_gen_0") (ocamlInt ::-> ocamlInt ::-> ocamlInt))
         (ocamlInt ::-> ocamlInt ::-> ocamlInt))
+    testTypeCheckExpr "let a = 0 in let b  = a in if a =b then 42 else 3"
+      (TLetIn
+       (LetPatternPattern ocamlInt (VarPattern ocamlInt (Sym "_a_gen_0")))
+       (TIntC 0)
+       (TLetIn
+        (LetPatternPattern ocamlInt (VarPattern ocamlInt (Sym "_b_gen_0")))
+        (TVar (Sym "_a_gen_0") ocamlInt)
+        (TIfThenElse
+         ((TVar (Sym "_a_gen_0") ocamlInt) :==: (TVar (Sym "_b_gen_0") ocamlInt))
+         (TIntC 42)
+         (TIntC 3)
+         ocamlInt
+        )
+        ocamlInt
+       )
+       ocamlInt
+      )
