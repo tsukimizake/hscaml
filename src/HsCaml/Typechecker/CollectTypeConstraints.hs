@@ -1,12 +1,12 @@
 {-# OPTIONS -Wall -Wno-name-shadowing #-}
 {-# LANGUAGE TemplateHaskell #-}
-module CollectTypeConstraints (collectTypeConstraints, collectTypeConstraintsStmt, TypeConstraint(TypeEq)) where
+module HsCaml.TypeChecker.CollectTypeConstraints (collectTypeConstraints, collectTypeConstraintsStmt, TypeConstraint(TypeEq)) where
 import Control.Lens as L
-import Types
-import OCamlType
+import HsCaml.Common.Types
+import HsCaml.Common.OCamlType
 import Control.Monad.State
 import Data.Monoid
-import TypeCheckUtil
+import HsCaml.TypeChecker.TypeCheckUtil
 import Data.Set as S
 
 

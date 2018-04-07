@@ -1,8 +1,8 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE InstanceSigs, TemplateHaskell, PatternSynonyms, MultiParamTypeClasses, FunctionalDependencies, TypeSynonymInstances, OverloadedStrings #-}
-module Types where
+module HsCaml.Common.Types where
 
-import Control.Lens
+import qualified Control.Lens as L
 import Data.Text (Text)
 
 type Name = Text
@@ -196,22 +196,22 @@ data InfixOp = Mul | Plus | Minus | Div
              | Mod
              deriving (Show, Eq, Ord)
 
-makeLenses ''Sym
-makePrisms ''Expr
-makeClassyFor "HasTypeExpr" "_typeExpr" [] ''TypeExpr
-makeClassyFor "HasPatType" "_patType" [] ''TypeExpr
-makeLenses ''LetPattern
-makeLenses ''Pattern
-makeLenses ''TExpr
-makeClassyPrisms ''TExpr
+L.makeLenses ''Sym
+L.makePrisms ''Expr
+L.makeClassyFor "HasTypeExpr" "_typeExpr" [] ''TypeExpr
+L.makeClassyFor "HasPatType" "_patType" [] ''TypeExpr
+L.makeLenses ''LetPattern
+L.makeLenses ''Pattern
+L.makeLenses ''TExpr
+L.makeClassyPrisms ''TExpr
 instance HasPatType LetPattern where
   _patType = _lpatType
 instance HasPatType Pattern where
   _patType = _mpatType
 
 instance HasTypeExpr TExpr where
-    _typeExpr :: Lens' TExpr TypeExpr
-    _typeExpr = lens getter setter
+    _typeExpr :: L.Lens' TExpr TypeExpr
+    _typeExpr = L.lens getter setter
       where
         getter :: TExpr -> TypeExpr
         getter (TConstant _ x)= x
@@ -269,5 +269,5 @@ toExpr (TLetRec x y _) = LetRec x (toExpr y)
 toExpr (TLetIn x y z _) = LetIn x (toExpr y) (toExpr z)
 toExpr (TLetRecIn x y z _) = LetRecIn x (toExpr y) (toExpr z)
 toExpr (TTypeDecl x y _) = TypeDecl x y
-toExpr (TList e _) = Types.List (fmap toExpr e)
+toExpr (TList e _) = List (fmap toExpr e)
 toExpr (TArray e _) = Array (fmap toExpr e)

@@ -1,4 +1,4 @@
-module Token where
+module HsCaml.Parser.Token where
 import Data.Text
 
 data Token

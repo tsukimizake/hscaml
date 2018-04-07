@@ -1,8 +1,8 @@
 {
-module Parser (parseStatement, parseExpr) where
-import Types
-import Token
-import Lexer
+module HsCaml.Parser.Parser (parseStatement, parseExpr) where
+import HsCaml.Common.Types as Types
+import HsCaml.Parser.Token
+import HsCaml.Parser.Lexer
 import Control.Lens hiding ((:<), (:>))
 import qualified Data.Text as T
 }

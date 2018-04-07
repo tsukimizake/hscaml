@@ -2,16 +2,16 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
-module InitialTypeInfer (initialTypeInfer) where
+module HsCaml.TypeChecker.InitialTypeInfer (initialTypeInfer) where
 
-import Types
-import OCamlType
+import HsCaml.Common.Types
+import HsCaml.Common.OCamlType
 import qualified Control.Lens as L
 import Control.Lens.Operators
 import Control.Monad.State
 import Data.Text
 import Data.Monoid
-import TypeCheckUtil
+import HsCaml.TypeChecker.TypeCheckUtil
 import Data.Map as M
 import Data.Maybe
 import Data.Set as S

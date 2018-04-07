@@ -3,9 +3,9 @@
 module ParserSpec(parserSpec) where
 import Test.Hspec
 import Data.Text
-import Parser
-import Types
-import OCamlType
+import HsCaml.Parser.Parser
+import HsCaml.Common.Types as Types
+import HsCaml.Common.OCamlType
 import GHC.Exts
 
 instance IsString Sym where

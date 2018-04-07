@@ -1,9 +1,9 @@
 {-# OPTIONS -Wall #-}
-module SetTypeConstraints (setTypeConstraints) where
-import Types
-import CollectTypeConstraints
+module HsCaml.TypeChecker.SetTypeConstraints (setTypeConstraints) where
+import HsCaml.Common.Types
+import HsCaml.TypeChecker.CollectTypeConstraints
 import Data.Set as S
-import TypeCheckUtil
+import HsCaml.TypeChecker.TypeCheckUtil
 import Control.Lens.Operators
 import Control.Lens as L
 import Debug.Trace

@@ -1,15 +1,15 @@
 {-# OPTIONS -Wall -Wno-name-shadowing #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
-module RenameSymsByScope (renameSymsByScope) where
-import Types
+module HsCaml.TypeChecker.RenameSymsByScope (renameSymsByScope) where
+import HsCaml.Common.Types as Types
 import Control.Monad.State.Strict
 import Data.Map as M
 import Control.Lens
 import qualified Data.Text as T hiding (head)
 import Data.Maybe
 import Data.Monoid
-import TypeCheckUtil
+import HsCaml.TypeChecker.TypeCheckUtil
 
 data RenameState =
     RenameState {

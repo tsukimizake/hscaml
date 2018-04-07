@@ -1,9 +1,9 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE OverloadedStrings #-}
-module CheckTypeCheckIsFinished (checkTypeCheckIsFinished) where
+module HsCaml.TypeChecker.CheckTypeCheckIsFinished (checkTypeCheckIsFinished) where
 
-import Types
-import TypeCheckUtil
+import HsCaml.Common.Types
+import HsCaml.TypeChecker.TypeCheckUtil
 import Control.Lens.Operators
 import Data.Text
 import Data.Monoid

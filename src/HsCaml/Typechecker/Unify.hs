@@ -2,16 +2,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Unify (unify, traverseTypeExpr, TypeVarReplaceable, replaceTypeVar) where
-import Types hiding (TV)
-import CollectTypeConstraints
+module HsCaml.TypeChecker.Unify (unify, traverseTypeExpr, TypeVarReplaceable, replaceTypeVar) where
+import HsCaml.Common.Types hiding (TV)
+import HsCaml.TypeChecker.CollectTypeConstraints
 import Data.Set as S
 import Control.Monad
 import qualified Control.Lens as L
 import Control.Lens.Operators
 import Data.Text
 import Data.Monoid
-import TypeCheckUtil
+import HsCaml.TypeChecker.TypeCheckUtil
 import Data.Functor.Identity
 import Control.Monad.State
 import Debug.Trace

@@ -1,7 +1,7 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE OverloadedStrings, PatternSynonyms #-}
-module OCamlType where
-import Types
+module HsCaml.Common.OCamlType where
+import HsCaml.Common.Types
 
 ocamlInt :: TypeExpr
 ocamlInt = TypeAtom "int"
@@ -14,4 +14,3 @@ ocamlBool = TypeAtom "bool"
 
 ocamlFloat :: TypeExpr
 ocamlFloat = TypeAtom "float"
-

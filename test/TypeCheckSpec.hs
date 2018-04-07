@@ -2,18 +2,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 module TypeCheckSpec where
 import Test.Hspec
-import Types
-import OCamlType
-import Parser
-import TypeChecker
-import TypeCheckUtil
-import RenameSymsByScope
+import HsCaml.Common.Types
+import HsCaml.Common.OCamlType
+import HsCaml.Parser.Parser
+import HsCaml.TypeChecker.TypeChecker
+import HsCaml.TypeChecker.TypeCheckUtil
+import HsCaml.TypeChecker.RenameSymsByScope
 import Control.Monad.State
 import Debug.Trace
 import Data.Set as S
-import CollectTypeConstraints
-import InitialTypeInfer
-import TypeChecker
+import HsCaml.TypeChecker.CollectTypeConstraints
+import HsCaml.TypeChecker.InitialTypeInfer
+import HsCaml.TypeChecker.TypeChecker
 
 testTypeCheckExpr :: String -> TExpr -> Spec
 testTypeCheckExpr src ast = it src $ do

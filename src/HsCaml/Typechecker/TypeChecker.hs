@@ -3,17 +3,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeOperators     #-}
-module TypeChecker where
+module HsCaml.TypeChecker.TypeChecker where
 
-import Types
-import Parser
-import RenameSymsByScope
-import InitialTypeInfer
-import CollectTypeConstraints
-import Unify
-import SetTypeConstraints
+import HsCaml.Common.Types
+import HsCaml.Parser.Parser
+import HsCaml.TypeChecker.RenameSymsByScope
+import HsCaml.TypeChecker.InitialTypeInfer
+import HsCaml.TypeChecker.CollectTypeConstraints
+import HsCaml.TypeChecker.Unify
+import HsCaml.TypeChecker.SetTypeConstraints
 import Debug.Trace
-import CheckTypeCheckIsFinished
+import HsCaml.TypeChecker.CheckTypeCheckIsFinished
 
 typeCheck :: Expr -> Either CompileError TExpr
 typeCheck e = do

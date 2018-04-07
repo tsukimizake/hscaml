@@ -7,12 +7,12 @@
 {-# OPTIONS_GHC -fno-warn-tabs                  #-}
 {-# OPTIONS_GHC -funbox-strict-fields           #-}
 
-module Lexer (alexScanTokens)
+module HsCaml.Parser.Lexer (alexScanTokens)
 
 where
 import Prelude
 import Data.Text hiding (map, take)
-import Token
+import HsCaml.Parser.Token
 }
 
 %wrapper "basic"

@@ -3,17 +3,16 @@
 module Main where
 import Test.Hspec
 import Data.Text
-import Parser
-import Types
-import OCamlType
-import TypeCheckUtil
-import InitialTypeInfer
-import RenameSymsByScope
-import CollectTypeConstraints
-import TypeChecker
+import Data.Set as S
+import HsCaml.Common.Types
+import HsCaml.TypeChecker.TypeCheckUtil
+import HsCaml.TypeChecker.RenameSymsByScope
+import HsCaml.TypeChecker.InitialTypeInfer
+import HsCaml.TypeChecker.CollectTypeConstraints
+import HsCaml.TypeChecker.TypeChecker
+import HsCaml.Parser.Parser
 import ParserSpec
 import TypeCheckSpec
-import Data.Set as S
 import Control.Monad.State
 
 specExpr :: String -> Expr -> TExpr -> [TypeConstraint] -> Spec
