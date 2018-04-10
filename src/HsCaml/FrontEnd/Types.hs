@@ -1,6 +1,6 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE InstanceSigs, TemplateHaskell, PatternSynonyms, MultiParamTypeClasses, FunctionalDependencies, TypeSynonymInstances, OverloadedStrings #-}
-module HsCaml.Common.Types where
+module HsCaml.FrontEnd.Types where
 
 import qualified Control.Lens as L
 import Data.Text (Text)
@@ -56,7 +56,6 @@ data Expr = Constant Value
           | List [Expr]
           | Array [Expr]
           deriving(Show, Eq, Ord)
-
 -- 型付いた式
 data TExpr = TConstant Value TypeExpr
            | TVar Sym TypeExpr
@@ -253,7 +252,7 @@ instance HasTypeExpr TExpr where
         setter (TArray e _) x = TArray e x
 
 toExpr :: TExpr -> Expr
-toExpr (TConstant x _)= Constant x
+toExpr (TConstant x _) = Constant x
 toExpr (TVar x _) = Var x
 toExpr (TParen x _) = Paren (toExpr x)
 toExpr (TInfixOpExpr x y z _) = InfixOpExpr (toExpr x) y (toExpr z)

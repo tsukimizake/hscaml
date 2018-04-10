@@ -15,8 +15,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     HsCaml.Common.Types
-                     , HsCaml.Common.OCamlType
+  exposed-modules:     HsCaml.FrontEnd.Types
+                     , HsCaml.FrontEnd.OCamlType
                      , HsCaml.Parser.Parser, HsCaml.Parser.Lexer, HsCaml.Parser.Token
                      , HsCaml.TypeChecker.TypeCheckUtil
                      , HsCaml.TypeChecker.TypeChecker
@@ -28,6 +28,8 @@ library
                      , HsCaml.TypeChecker.CheckTypeCheckIsFinished
                      , HsCaml.Optimize.Optimizer
                      , HsCaml.LLVM.Codegen
+                     , HsCaml.HCcore.Types
+                     , HsCaml.HCcore.ToHCcore
 
   build-depends:       base >= 4.7 && < 5
                      , hspec >= 2.4.4

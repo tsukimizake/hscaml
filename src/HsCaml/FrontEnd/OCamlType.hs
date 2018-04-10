@@ -1,7 +1,7 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE OverloadedStrings, PatternSynonyms #-}
-module HsCaml.Common.OCamlType where
-import HsCaml.Common.Types
+module HsCaml.FrontEnd.OCamlType where
+import HsCaml.FrontEnd.Types
 
 ocamlInt :: TypeExpr
 ocamlInt = TypeAtom "int"
