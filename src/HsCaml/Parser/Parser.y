@@ -1,6 +1,6 @@
 {
 module HsCaml.Parser.Parser (parseStatement, parseExpr) where
-import HsCaml.Common.Types as Types
+import HsCaml.FrontEnd.Types as Types
 import HsCaml.Parser.Token
 import HsCaml.Parser.Lexer
 import Control.Lens hiding ((:<), (:>))

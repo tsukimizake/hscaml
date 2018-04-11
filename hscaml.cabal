@@ -30,7 +30,7 @@ library
                      , HsCaml.LLVM.Codegen
                      , HsCaml.HCcore.Types
                      , HsCaml.HCcore.ToHCcore
-
+                     , HsCaml.Common.Gensym
   build-depends:       base >= 4.7 && < 5
                      , hspec >= 2.4.4
                      , parsec >= 3.1

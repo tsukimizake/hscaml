@@ -2,8 +2,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 module HsCaml.TypeChecker.CollectTypeConstraints (collectTypeConstraints, collectTypeConstraintsStmt, TypeConstraint(TypeEq)) where
 import Control.Lens as L
-import HsCaml.Common.Types
-import HsCaml.Common.OCamlType
+import HsCaml.FrontEnd.Types
+import HsCaml.FrontEnd.OCamlType
 import Control.Monad.State
 import Data.Monoid
 import HsCaml.TypeChecker.TypeCheckUtil

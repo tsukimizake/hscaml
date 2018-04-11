@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE Strict #-}
 module HsCaml.TypeChecker.TypeCheckUtil where
-import HsCaml.Common.Types as Types
+import HsCaml.FrontEnd.Types as Types
 import Data.Text
 import Data.Functor.Identity
 import Data.Monoid

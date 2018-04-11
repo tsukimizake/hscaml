@@ -4,8 +4,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 module HsCaml.TypeChecker.InitialTypeInfer (initialTypeInfer) where
 
-import HsCaml.Common.Types
-import HsCaml.Common.OCamlType
+import HsCaml.FrontEnd.Types
+import HsCaml.FrontEnd.OCamlType
 import qualified Control.Lens as L
 import Control.Lens.Operators
 import Control.Monad.State

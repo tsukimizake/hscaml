@@ -1,6 +1,6 @@
 {-# OPTIONS -Wall #-}
 module HsCaml.TypeChecker.SetTypeConstraints (setTypeConstraints) where
-import HsCaml.Common.Types
+import HsCaml.FrontEnd.Types
 import HsCaml.TypeChecker.CollectTypeConstraints
 import Data.Set as S
 import HsCaml.TypeChecker.TypeCheckUtil

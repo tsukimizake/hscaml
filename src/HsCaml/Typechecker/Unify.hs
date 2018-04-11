@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module HsCaml.TypeChecker.Unify (unify, traverseTypeExpr, TypeVarReplaceable, replaceTypeVar) where
-import HsCaml.Common.Types hiding (TV)
+import HsCaml.FrontEnd.Types hiding (TV)
 import HsCaml.TypeChecker.CollectTypeConstraints
 import Data.Set as S
 import Control.Monad

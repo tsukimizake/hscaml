@@ -2,30 +2,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 module HsCaml.TypeChecker.RenameSymsByScope (renameSymsByScope) where
-import HsCaml.Common.Types as Types
+import HsCaml.FrontEnd.Types as Types
 import Control.Monad.State.Strict
-import Data.Map as M
-import Control.Lens
-import qualified Data.Text as T hiding (head)
 import Data.Maybe
-import Data.Monoid
+import Control.Lens
 import HsCaml.TypeChecker.TypeCheckUtil
+import HsCaml.Common.Gensym
 
-data RenameState =
-    RenameState {
-        _counter :: Map Name Int,
-        _renameStack :: Map Name [Name]
-    } deriving (Show)
-
-makeLenses ''RenameState
-
-initialRenameState :: RenameState
-initialRenameState = RenameState {_counter=M.empty, _renameStack=M.empty}
-
-unwrapSym :: Sym -> Name
-unwrapSym s = s ^. _name
-
-pushAndRenameSym :: Name -> State RenameState Name
+pushAndRenameSym :: Name -> State GensymState Name
 pushAndRenameSym s = do
         s' <- genSym s
         stack <- use renameStack
@@ -33,20 +17,15 @@ pushAndRenameSym s = do
         renameStack .= (stack & at s ?~ (s':xs))
         pure s'
 
-popRenameStack :: Name -> State RenameState ()
+popRenameStack :: Name -> State GensymState ()
 popRenameStack s = do
     stack <- use renameStack
     let xs = fromJust (stack ^. at s)
-    renameStack .= (stack & at s ?~ tail xs)
+    renameStack .= (stack & at s ?~ Prelude.tail xs)
     pure ()
 
-genSym :: Name -> State RenameState Name
-genSym x = do
-    oldmap <- use counter
-    let n = fromMaybe 0 (oldmap ^. at x) :: Int
-    let newmap = oldmap & at x ?~ (n+1)
-    counter .= newmap
-    pure $ "_" <> x <> "_gen_" <> (T.pack $ show n)
+unwrapSym :: Sym -> Name
+unwrapSym s = s ^. _name
 
 -- let x = 0
 -- in let x = 1
@@ -56,10 +35,11 @@ genSym x = do
 -- in let x1 = 1
 -- in x1
 -- TODO letがletrecと同じになってるのを修正する したい
+
 renameSymsByScope :: Expr -> Expr
-renameSymsByScope expr = evalState (impl expr) initialRenameState
+renameSymsByScope expr = evalState (impl expr) initialGensymState
   where
-    impl :: Expr -> State RenameState Expr
+    impl :: Expr -> State GensymState Expr
     impl (Var (Sym s)) = do
         stack <- use renameStack
         let newname = stack ^. at s & fromJust & head

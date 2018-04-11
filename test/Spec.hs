@@ -4,7 +4,7 @@ module Main where
 import Test.Hspec
 import Data.Text
 import Data.Set as S
-import HsCaml.Common.Types
+import HsCaml.FrontEnd.Types
 import HsCaml.TypeChecker.TypeCheckUtil
 import HsCaml.TypeChecker.RenameSymsByScope
 import HsCaml.TypeChecker.InitialTypeInfer

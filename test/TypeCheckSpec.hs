@@ -2,8 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module TypeCheckSpec where
 import Test.Hspec
-import HsCaml.Common.Types
-import HsCaml.Common.OCamlType
+import HsCaml.FrontEnd.Types
+import HsCaml.FrontEnd.OCamlType
 import HsCaml.Parser.Parser
 import HsCaml.TypeChecker.TypeChecker
 import HsCaml.TypeChecker.TypeCheckUtil

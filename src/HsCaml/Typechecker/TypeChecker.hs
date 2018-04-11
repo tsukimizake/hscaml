@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeOperators     #-}
 module HsCaml.TypeChecker.TypeChecker where
 
-import HsCaml.Common.Types
+import HsCaml.FrontEnd.Types
 import HsCaml.Parser.Parser
 import HsCaml.TypeChecker.RenameSymsByScope
 import HsCaml.TypeChecker.InitialTypeInfer

@@ -7,7 +7,7 @@ module HsCaml.LLVM.Codegen where
 
 import LLVM as L
 import LLVM.AST as LA
-import HsCaml.Common.Types
+import HsCaml.FrontEnd.Types
 import Data.Text as T
 import LLVM.Prelude as LP
 import Data.ByteString.Short as B

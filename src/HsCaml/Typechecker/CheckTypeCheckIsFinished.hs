@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module HsCaml.TypeChecker.CheckTypeCheckIsFinished (checkTypeCheckIsFinished) where
 
-import HsCaml.Common.Types
+import HsCaml.FrontEnd.Types
 import HsCaml.TypeChecker.TypeCheckUtil
 import Control.Lens.Operators
 import Data.Text
@@ -18,4 +18,4 @@ checkTypeCheckIsFinished = traverseTExpr impl
     impl e = let isOK = isCorrectlyInferedType $ e ^. _typeExpr
              in if isOK
                 then Right e
-                else Left . TypeError $ (pack . show) (e ^. _typeExpr) <> " couldn't be infered!\n in Expr" <> (pack . show) e
+                else Left . TypeError $ (pack . show) (e ^. _typeExpr) <> " couldn't be infered!\n in Expr" <> (pack . show) (toExpr e)
