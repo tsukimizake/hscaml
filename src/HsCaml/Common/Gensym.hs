@@ -17,11 +17,11 @@ data GensymState =
 
 L.makeLenses ''GensymState
 
-type GensymM = State GensymState Text
+type GensymM a = State GensymState a
 initialGensymState :: GensymState
 initialGensymState = GensymState {_counter=M.empty, _renameStack=M.empty}
 
-genSym :: Text -> State GensymState Text
+genSym :: Text -> GensymM Text
 genSym x = do
     oldmap <- use counter
     let n = fromMaybe 0 (oldmap ^. at x) :: Int
