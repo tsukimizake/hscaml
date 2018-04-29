@@ -34,7 +34,7 @@ unwrapSym s = s ^. _name
 -- let x0 = 0
 -- in let x1 = 1
 -- in x1
--- TODO letがletrecと同じになってるのを修正する したい
+-- TODO fromJust : Nothingとかじゃなくエラー処理をですね…
 
 renameSymsByScope :: Expr -> Expr
 renameSymsByScope expr = runGensymM $ impl expr
@@ -46,8 +46,8 @@ renameSymsByScope expr = runGensymM $ impl expr
         pure $ V newname
     impl x@(IntC _) = pure $ x
     impl (Let (LetPatternPattern t1 (VarPattern t (Sym s))) e) = do
-        s' <- pushAndRenameSym s
         e' <- impl e
+        s' <- pushAndRenameSym s
         popRenameStack s
         pure (Let (LetPatternPattern t1 (VarPattern t (Sym s'))) e')
     impl (LetRec (LetPatternPattern t1 (VarPattern t (Sym s))) e) = do
@@ -56,17 +56,17 @@ renameSymsByScope expr = runGensymM $ impl expr
         popRenameStack s
         pure (LetRec (LetPatternPattern t1 (VarPattern t (Sym s'))) e')
     impl (LetIn (LetPatternPattern t1 (VarPattern t (Sym s))) e1 e2) = do
-        s' <- pushAndRenameSym s
         e1' <- impl e1
+        s' <- pushAndRenameSym s
         e2' <- impl e2
         popRenameStack s
         pure (LetIn (LetPatternPattern t1 (VarPattern t (Sym s'))) e1' e2')
     impl (Let (FuncLetPattern t (Sym s) xs) e) = do
+        e' <- impl e
         s' <- pushAndRenameSym s
         args' <- forM xs $ \(s, t) -> do
           s' <- pushAndRenameSym $ unwrapSym $ s
           pure (Sym s', t)
-        e' <- impl e
         popRenameStack s
         forM_ xs $ \(s, t) -> do
           s' <- popRenameStack . unwrapSym $ s
@@ -85,11 +85,11 @@ renameSymsByScope expr = runGensymM $ impl expr
         pure $ LetRec (FuncLetPattern t (Sym s') args') e'
 
     impl (LetIn (FuncLetPattern t (Sym s) xs) e1 e2) = do
-        s' <- pushAndRenameSym s
         args' <- forM xs $ \(s, t) -> do
               s' <- pushAndRenameSym $ unwrapSym $ s
               pure (Sym s', t)
         e1' <- impl e1
+        s' <- pushAndRenameSym s
         e2' <- impl e2
         popRenameStack s
         forM_ xs $ \(s, t) -> do

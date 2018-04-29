@@ -82,7 +82,7 @@ typeCheckSpec = do
       , TypeEq (TypeVar "_3") ocamlInt
       ]
 
-    collectConstraintsSpec "let f g x = f (g x) in g"
+    collectConstraintsSpec "let rec f g x = f (g x) in g"
       [
         TypeEq(TypeVar "_4" ::-> TypeVar "_5") (TypeVar "_0")
       , TypeEq(TypeVar "_1" ::-> TypeVar "_2" ::-> TypeVar "_5") (TypeVar "_0")
