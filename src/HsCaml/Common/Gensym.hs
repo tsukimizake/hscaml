@@ -1,6 +1,8 @@
+{-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module HsCaml.Common.Gensym where
 import Control.Lens as L
 import Data.Map as M
@@ -15,11 +17,18 @@ data GensymState =
   _renameStack :: Map Text [Text]
   } deriving (Show)
 
-L.makeLenses ''GensymState
+type GensymM = GensymMT Identity
 
-type GensymM a = State GensymState a
+newtype GensymMT m a = GensymMT {runGensymMTImpl :: StateT GensymState m a}
+  deriving (Functor, Applicative, Monad, MonadState GensymState)
+
+runGensymM :: GensymM a -> a
+runGensymM impl = evalState (runGensymMTImpl $ impl) initialGensymState
+
 initialGensymState :: GensymState
 initialGensymState = GensymState {_counter=M.empty, _renameStack=M.empty}
+
+L.makeLenses ''GensymState
 
 genSym :: Text -> GensymM Text
 genSym x = do

@@ -9,7 +9,7 @@ import Control.Lens
 import HsCaml.TypeChecker.TypeCheckUtil
 import HsCaml.Common.Gensym
 
-pushAndRenameSym :: Name -> State GensymState Name
+pushAndRenameSym :: Name -> GensymM Name
 pushAndRenameSym s = do
         s' <- genSym s
         stack <- use renameStack
@@ -17,7 +17,7 @@ pushAndRenameSym s = do
         renameStack .= (stack & at s ?~ (s':xs))
         pure s'
 
-popRenameStack :: Name -> State GensymState ()
+popRenameStack :: Name -> GensymM ()
 popRenameStack s = do
     stack <- use renameStack
     let xs = fromJust (stack ^. at s)
@@ -37,9 +37,9 @@ unwrapSym s = s ^. _name
 -- TODO letがletrecと同じになってるのを修正する したい
 
 renameSymsByScope :: Expr -> Expr
-renameSymsByScope expr = evalState (impl expr) initialGensymState
+renameSymsByScope expr = runGensymM $ impl expr
   where
-    impl :: Expr -> State GensymState Expr
+    impl :: Expr -> GensymM Expr
     impl (Var (Sym s)) = do
         stack <- use renameStack
         let newname = stack ^. at s & fromJust & head
@@ -96,6 +96,13 @@ renameSymsByScope expr = evalState (impl expr) initialGensymState
           s' <- popRenameStack . unwrapSym $ s
           pure (s', t)
         pure $ LetIn (FuncLetPattern t (Sym s') (args')) e1' e2'
+    impl (LetRecIn (LetPatternPattern t1 (VarPattern t (Sym s))) e1 e2) = do
+        s' <- pushAndRenameSym s
+        e1' <- impl e1
+        e2' <- impl e2
+        popRenameStack s
+        pure (LetRecIn (LetPatternPattern t1 (VarPattern t (Sym s'))) e1' e2')
+
     impl (LetRecIn (FuncLetPattern t (Sym s) xs) e1 e2) = do
         s' <- pushAndRenameSym s
         args' <- forM xs $ \(s, t) -> do
@@ -113,7 +120,7 @@ renameSymsByScope expr = evalState (impl expr) initialGensymState
       args' <- forM args $ \arg -> do
         impl arg
       pure $ FunApply f' args'
-    impl e@(Constant _) = traverseExpr impl e
+    impl e@(Constant _) = pure e
     impl e@(Paren _) = traverseExpr impl e
     impl e@(InfixOpExpr _ _ _) = traverseExpr impl e
     impl e@(BegEnd _ ) =traverseExpr impl e
@@ -127,6 +134,5 @@ renameSymsByScope expr = evalState (impl expr) initialGensymState
     impl e@(LetIn (LetPatternPattern _ _) _ _) = traverseExpr impl e
     impl e@(LetRec (LetPatternPattern _ _) _) = traverseExpr impl e
     impl e@(LetRecIn (LetPatternPattern _ _) _ _) = traverseExpr impl e
-    impl e@(TypeDecl _ _) = traverseExpr impl e
     impl e@(Types.List _) = traverseExpr impl e
     impl e@(Array _) = traverseExpr impl e

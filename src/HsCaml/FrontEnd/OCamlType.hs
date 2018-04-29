@@ -14,3 +14,6 @@ ocamlBool = TypeAtom "bool"
 
 ocamlFloat :: TypeExpr
 ocamlFloat = TypeAtom "float"
+
+ocamlUnit :: TypeExpr
+ocamlUnit = TypeAtom "()"

@@ -36,8 +36,8 @@ traverseExpr f (IfThenElse e1 e2 e3) = do
 traverseExpr f (Match e1 e2) = do
     e1'  <- traverseExpr f e1
     e2' <- mapM (\(x, y) -> do
-                     y'  <- traverseExpr f y
-                     pure (x, y')) e2
+                    y'  <- traverseExpr f y
+                    pure (x, y')) e2
     pure $ Match e1' e2'
 traverseExpr f (While e1 e2) = do
     e1'  <- traverseExpr f e1
@@ -61,7 +61,6 @@ traverseExpr f (LetRecIn e1 e2 e3) = do
     e2'  <- traverseExpr f e2
     e3'  <- traverseExpr f e3
     pure $ LetRecIn e1 e2' e3'
-traverseExpr f (TypeDecl e1 e2) = f $ TypeDecl e1 e2
 traverseExpr f (Types.List xs) = do
   xs' <- mapM (traverseExpr f) xs
   pure $ Types.List xs'
@@ -120,8 +119,6 @@ traverseTExpr f (TLetRecIn e1 e2 e3 t) = do
     e2'  <- traverseTExpr f e2
     e3'  <- traverseTExpr f e3
     f $ TLetRecIn e1 e2' e3' t
-traverseTExpr f (TTypeDecl e1 e2 t) = do
-  f $ TTypeDecl e1 e2 t
 traverseTExpr f (Types.TList xs t) = do
   xs' <- mapM (traverseTExpr f) xs
   f $ Types.TList xs' t

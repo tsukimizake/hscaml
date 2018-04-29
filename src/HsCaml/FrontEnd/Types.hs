@@ -35,6 +35,8 @@ data CompileError = TypeError Text
 data DataCnstr = DataCnstr Name [TypeExpr]
                  deriving (Show, Eq, Ord)
 
+data TypeDecl = TypeDecl Name [DataCnstr]
+              deriving (Show, Eq)
 
 -- 式
 data Expr = Constant Value
@@ -52,11 +54,13 @@ data Expr = Constant Value
           | LetRec LetPattern Expr
           | LetRecIn LetPattern Expr Expr
           | LetIn LetPattern Expr Expr
-          | TypeDecl Name [DataCnstr]
           | List [Expr]
           | Array [Expr]
           deriving(Show, Eq, Ord)
+
+
 -- 型付いた式
+
 data TExpr = TConstant Value TypeExpr
            | TVar Sym TypeExpr
            | TParen TExpr TypeExpr
@@ -72,7 +76,6 @@ data TExpr = TConstant Value TypeExpr
            | TLetRec LetPattern TExpr TypeExpr
            | TLetIn LetPattern TExpr TExpr TypeExpr
            | TLetRecIn LetPattern TExpr TExpr TypeExpr
-           | TTypeDecl Name [DataCnstr] TypeExpr
            | TList [TExpr] TypeExpr
            | TArray [TExpr] TypeExpr
            deriving(Show, Eq, Ord)
@@ -153,9 +156,12 @@ pattern (:||:) :: TExpr -> TExpr -> TExpr
 pattern l :||: r = TInfixOpExpr l BoolOr r (TypeAtom "bool")
 pattern (:%:) :: TExpr -> TExpr -> TExpr
 pattern l :%: r = TInfixOpExpr l Mod r (TypeAtom "int")
+data TopLevel = TopLevelExpr Expr
+              | TopLevelTypeDecl TypeDecl
+              deriving (Show, Eq)
 
-data Statement = Statement [Expr] deriving (Show, Eq)
-data TStatement = TStatement [TExpr] deriving (Show, Eq)
+data Statement = Statement [TopLevel] deriving (Show, Eq)
+data TStatement = TStatement [TExpr] [TypeDecl] deriving (Show, Eq)
 
 data LetPattern =
  FuncLetPattern {
@@ -228,7 +234,6 @@ instance HasTypeExpr TExpr where
         getter (TLetRec _ _ x) = x
         getter (TLetIn _ _ _ x) = x
         getter (TLetRecIn _ _ _ x) = x
-        getter (TTypeDecl _ _ x) = x
         getter (TList _ x) = x
         getter (TArray _ x) = x
         setter :: TExpr -> TypeExpr -> TExpr
@@ -247,7 +252,6 @@ instance HasTypeExpr TExpr where
         setter (TLetRec e f _) x = TLetRec e f x
         setter (TLetIn e f g _) x = TLetIn e f g x
         setter (TLetRecIn e f g _) x = TLetRecIn e f g x
-        setter (TTypeDecl e f _) x = TTypeDecl e f x
         setter (TList e _) x = TList e x
         setter (TArray e _) x = TArray e x
 
@@ -267,6 +271,6 @@ toExpr (TLet x y _) = Let x (toExpr y)
 toExpr (TLetRec x y _) = LetRec x (toExpr y)
 toExpr (TLetIn x y z _) = LetIn x (toExpr y) (toExpr z)
 toExpr (TLetRecIn x y z _) = LetRecIn x (toExpr y) (toExpr z)
-toExpr (TTypeDecl x y _) = TypeDecl x y
+-- toExpr (TTypeDecl x y _) = TypeDecl x y
 toExpr (TList e _) = List (fmap toExpr e)
 toExpr (TArray e _) = Array (fmap toExpr e)

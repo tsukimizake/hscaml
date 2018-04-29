@@ -138,9 +138,6 @@ initialTypeInferImpl (LetRecIn pat f g) = do
   g' <- initialTypeInferImpl g
   t <- genTypeVar Nothing Nothing
   pure $ TLetRecIn pat' f' g' t
-initialTypeInferImpl (TypeDecl e f) = do
-  t <- genTypeVar Nothing Nothing
-  pure $ TTypeDecl e f t
 initialTypeInferImpl (List xs) = do
   t <- genTypeVar Nothing Nothing
   ys <- mapM initialTypeInferImpl xs :: MangleTypeVarM [TExpr]
@@ -154,9 +151,18 @@ initialTypeInfer :: Expr -> TExpr
 initialTypeInfer expr = (initialTypeInferImpl expr) `evalState` initialMangleTypeVarStat
 
 initialTypeInferStmt :: Statement -> MangleTypeVarM TStatement
-initialTypeInferStmt (Statement exprs)= do
-  texprs <- mapM initialTypeInferImpl exprs
-  pure $ TStatement texprs
+initialTypeInferStmt (Statement toplevels) = do
+  tes <- mapM impltexpr toplevels
+  tds <- mapM impltypedecls toplevels
+  pure $ TStatement (catMaybes tes) (catMaybes tds)
+  where
+    impltexpr (TopLevelExpr expr) = do
+      texpr <- initialTypeInferImpl expr
+      pure $ Just $ texpr
+    impltexpr (TopLevelTypeDecl _) = pure Nothing
+    impltypedecls (TopLevelTypeDecl td) = pure $ Just $ td
+    impltypedecls (TopLevelExpr _) = pure Nothing
+
 nameTypeVarInLetPat :: LetPattern -> MangleTypeVarM LetPattern
 nameTypeVarInLetPat (LetPatternPattern t1 (VarPattern t s)) = do
   t' <- genTypeVar (Just $ symToText s) Nothing

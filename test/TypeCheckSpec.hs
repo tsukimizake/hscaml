@@ -43,12 +43,35 @@ typeCheckSpec = do
                       (LetIn (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_2")))
                       (IntC 3)
                        (V "_x_gen_2")))) :: Expr)
+    (renameSymsByScope . parseExpr $ "let rec a = 0 in if a=0 then 2 else 3")
+      `shouldBe` (LetRecIn
+                  (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_a_gen_0")))
+                  (Constant (IntVal 0))
+                  (IfThenElse (InfixOpExpr (Var (Sym "_a_gen_0")) (Compare Equal) (Constant (IntVal 0))) (Constant (IntVal 2)) (Constant (IntVal 3))))
+    (renameSymsByScope . parseExpr $ "let x = 0 in match x with | 42 -> x")
+      `shouldBe`
+      LetIn
+      (LetPatternPattern
+       UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_0")))
+      (Constant (IntVal 0))
+      (Match
+       (Var (Sym "_x_gen_0"))
+       [(ConstantPattern UnspecifiedType (IntVal 42), Var (Sym "_x_gen_0"))])
+    (renameSymsByScope . parseExpr $ "let x = 0 in match x with | 42 -> true")
+      `shouldBe`
+      LetIn
+      (LetPatternPattern
+       UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_0")))
+      (Constant (IntVal 0))
+      (Match
+       (Var (Sym "_x_gen_0"))
+       [(ConstantPattern UnspecifiedType (IntVal 42), (Constant (BoolVal True)))])
   describe "initialTypeInfer" $ it "let f x y = x*y in f" $ do
     (initialTypeInfer . renameSymsByScope . parseExpr $ "let f x y = x*y in f")
       `shouldBe` (TLetIn
-                   (FuncLetPattern (TypeVar "_0") (Sym {__name = "_f_gen_0"}) [(Sym {__name = "_x_gen_0"}, TypeVar "_1"),(Sym {__name = "_y_gen_0"}, TypeVar "_2")])
-                   (TInfixOpExpr (TVar (Sym {__name = "_x_gen_0"}) (TypeVar "_1")) Mul (TVar (Sym {__name = "_y_gen_0"}) (TypeVar "_2")) (TypeVar "_3"))
-                   (TVar (Sym {__name = "_f_gen_0"}) (TypeVar "_0")) (TypeVar "_4"))
+                   (FuncLetPattern (TypeVar "_0") (Sym "_f_gen_0") [(Sym "_x_gen_0", TypeVar "_1"),(Sym "_y_gen_0", TypeVar "_2")])
+                   (TInfixOpExpr (TVar (Sym "_x_gen_0") (TypeVar "_1")) Mul (TVar (Sym "_y_gen_0") (TypeVar "_2")) (TypeVar "_3"))
+                   (TVar (Sym "_f_gen_0") (TypeVar "_0")) (TypeVar "_4"))
   describe "collectTypeInfo" $ do
     collectConstraintsSpec "let f x y = x*y in f"
       [

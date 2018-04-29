@@ -27,10 +27,10 @@ typeCheck e = do
   let typevarReplaced = setTypeConstraints unified te'
   checkTypeCheckIsFinished typevarReplaced
 
-traceTexpr :: String -> IO ()
-traceTexpr s = do
-    let expr = renameSymsByScope . parseExpr $ s
-    let texpr = initialTypeInfer expr
-    print texpr
-    let constraints = collectTypeConstraints texpr
-    print constraints
+-- traceTexpr :: String -> IO ()
+-- traceTexpr s = do
+--     let expr = renameSymsByScope . parseExpr $ s
+--     let texpr = initialTypeInfer expr
+--     print texpr
+--     let constraints = collectTypeConstraints texpr
+--     print constraints

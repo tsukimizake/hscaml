@@ -12,10 +12,15 @@ import Data.Set as S
 
 
 collectTypeConstraintsStmt :: TStatement -> CollectTypeConstraintsM (S.Set TypeConstraint)
-collectTypeConstraintsStmt (TStatement exprs) = do
-  forM_ exprs $ \expr -> do
-    collectTypeConstraintsImpl expr
+collectTypeConstraintsStmt (TStatement texprs typedecls) = do
+  forM_ texprs $ \te -> do
+    collectTypeConstraintsImpl te
+  forM_ typedecls $ \td -> do
+    collectTypeConstraintsTD td
   get
+  where
+    collectTypeConstraintsTD :: TypeDecl -> CollectTypeConstraintsM ()
+    collectTypeConstraintsTD _ = undefined -- TODO
 
 type CollectTypeConstraintsM a = State (S.Set TypeConstraint) a
 

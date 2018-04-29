@@ -1,5 +1,5 @@
 {
-module HsCaml.Parser.Parser (parseStatement, parseExpr) where
+module HsCaml.Parser.Parser (parseStatement, parseExpr, parseTopLevel) where
 import HsCaml.FrontEnd.Types as Types
 import HsCaml.Parser.Token
 import HsCaml.Parser.Lexer
@@ -8,7 +8,8 @@ import qualified Data.Text as T
 }
 
 %name stmtParser Stmt
-%name exprParser TopLevel
+%name exprParser Expr
+%name topLevelParser TopLevel
 %tokentype {Token}
 %error {parseError}
 
@@ -68,13 +69,13 @@ qvar {QuotedTokenVar $$}
 Stmt :: {Statement}
   : TopLevels {Statement $1}
 
-TopLevels :: {[Expr]}
+TopLevels :: {[TopLevel]}
   : TopLevel ";;" {[$1]}
   | TopLevel ";;" TopLevels  {$1 : $3}
 
-TopLevel :: {Expr}
-  : Expr {$1}
-  | TypeDecl {$1}
+TopLevel :: {TopLevel}
+  : Expr {TopLevelExpr $1}
+  | TypeDecl {TopLevelTypeDecl $1}
 
 Expr :: {Expr}
   : Expr "+" Expr {$1 :+ $3}
@@ -139,7 +140,7 @@ ArgExprList :: {[Expr]}
 -- type a = A of (int -> int)
 -- type a = A of int | B of int
 -- type 'a list = Nil | Cons 'a 'a list
-TypeDecl :: {Expr}
+TypeDecl :: {TypeDecl}
 TypeDecl
   : "type" downvar "=" DataCnstrDecls {TypeDecl $2 $4}
   | "type" TypeArgs downvar "=" DataCnstrDecls  {TypeDecl $3 $5}
@@ -214,6 +215,9 @@ parseStatement = stmtParser . alexScanTokens
 
 parseExpr :: String -> Expr
 parseExpr = exprParser . alexScanTokens
+
+parseTopLevel :: String -> TopLevel
+parseTopLevel = topLevelParser . alexScanTokens
 
 parseError tok = error (show tok)
 
