@@ -24,8 +24,8 @@ data CExprWithRet = CExprWithRet
 --
 L.makeLenses ''CExprWithRet
 
-newtype ToHCcoreM a = ToHCcoreM {runToHCcoreMImpl :: StateT [CExpr] GS.GensymM a}
-                    deriving (Functor, Applicative, Monad, MonadState [CExpr])
+newtype ToHCcoreM a = ToHCcoreM {runToHCcoreMImpl :: GS.GensymMT (Either CompileError) a}
+                    deriving (Functor, Applicative, Monad)
 
 toFlatMultiExpr :: [CExpr] -> CExpr
 toFlatMultiExpr xs = CMultiExpr (impl xs) (typeOfLastExpr xs)
@@ -57,17 +57,16 @@ toFlatMultiExpr xs = CMultiExpr (impl xs) (typeOfLastExpr xs)
 -- getReturnedLVar (CValue (CFunApply _ _) _) = undefined
 -- getReturnedLVar (CValue (CInfixOpExpr _ _ _) _) = undefined
 
-putCExpr :: CExpr -> ToHCcoreM ()
-putCExpr e = modify' (e:)
+-- putCExpr :: CExpr -> ToHCcoreM ()
+-- putCExpr e = modify' (e:)
 
-runToHCcoreM :: a -> (a -> ToHCcoreM b) -> b
-runToHCcoreM e impl = let gxs = (evalStateT . runToHCcoreMImpl) (impl e) []
-                      in GS.runGensymM gxs
+runToHCcoreM :: a -> (a -> ToHCcoreM b) -> Either CompileError b
+runToHCcoreM e impl = GS.runGensymMT . runToHCcoreMImpl $ (impl e)
 
-toHCcore :: TExpr -> CExpr
-toHCcore e = let gxs = (execStateT . runToHCcoreMImpl) (toHCcoreM e) [] :: GS.GensymM [CExpr]
-                 xs = Prelude.reverse $ GS.runGensymM gxs :: [CExpr] -- TODO: MultiExpr の reverse
-             in toFlatMultiExpr xs
+toHCcore :: TExpr -> Either CompileError CExpr
+toHCcore e = do
+  xs <- (GS.runGensymMT . runToHCcoreMImpl) (toHCcoreM e) :: Either CompileError CExprWithRet
+  pure $ toFlatMultiExpr [xs ^. _cexpr]
 
 -- (TypeDecl "expr"
 --              [DataCnstr "Plus" [(TypeAtom "expr"), (TypeAtom "expr")],
@@ -90,10 +89,10 @@ makeCTypeDecl (TypeDecl name xs) = CTypeDecl (CType name) (setDCId 0 xs)
     setDCId n ((DataCnstr dcname args):rest) = (CDataCnstr dcname args (DCId n)) : setDCId (n+1) rest
 
 genSym :: Text -> ToHCcoreM Sym
-genSym s = fmap Sym <$> ToHCcoreM $ lift $ GS.genSym s
+genSym s = fmap Sym <$> ToHCcoreM $ GS.genSym s
 
 genSymLVar :: TypeExpr -> ToHCcoreM CLValue
-genSymLVar t = fmap wrap <$> ToHCcoreM $ lift $ GS.genSym ""
+genSymLVar t = fmap wrap <$> ToHCcoreM $ GS.genSym ""
   where
     wrap x = CLVar (Sym x) t
 

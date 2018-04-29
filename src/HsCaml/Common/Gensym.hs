@@ -22,6 +22,9 @@ type GensymM = GensymMT Identity
 newtype GensymMT m a = GensymMT {runGensymMTImpl :: StateT GensymState m a}
   deriving (Functor, Applicative, Monad, MonadState GensymState)
 
+runGensymMT :: (Monad m) => GensymMT m a -> m a
+runGensymMT impl = evalStateT (runGensymMTImpl $ impl) initialGensymState
+
 runGensymM :: GensymM a -> a
 runGensymM impl = evalState (runGensymMTImpl $ impl) initialGensymState
 
@@ -30,7 +33,7 @@ initialGensymState = GensymState {_counter=M.empty, _renameStack=M.empty}
 
 L.makeLenses ''GensymState
 
-genSym :: Text -> GensymM Text
+genSym :: Monad m => Text -> GensymMT m Text
 genSym x = do
     oldmap <- use counter
     let n = fromMaybe 0 (oldmap ^. at x) :: Int
