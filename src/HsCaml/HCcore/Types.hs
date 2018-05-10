@@ -4,6 +4,7 @@
 module HsCaml.HCcore.Types where
 import HsCaml.FrontEnd.Types hiding (Expr, TExpr)
 import Control.Lens
+import Data.Text
 
 data CRValue = CRConst Value
              | CRVar Sym
@@ -39,6 +40,7 @@ data CExpr = CMultiExpr [CExpr] TypeExpr
            | CInitialize CAssign TypeExpr
            | CValue CLValue TypeExpr
            | CWhile CLValue CExpr TypeExpr
+           | CRuntimeError Text TypeExpr
            deriving (Show)
 
 data CTypeDecl = CTypeDecl CType [CDataCnstr]
@@ -47,6 +49,7 @@ data CTypeDecl = CTypeDecl CType [CDataCnstr]
 data CTopLevel = CTopLevelExpr CExpr
                | CTopLevelTypeDecl
                deriving(Show)
+
 instance HasTypeExpr CExpr where
   _typeExpr = lens getter setter
     where
@@ -55,9 +58,9 @@ instance HasTypeExpr CExpr where
       getter (CLetRec _ _ t) = t
       getter (CLetRecIn _ _ _ t) = t
       getter (CInitialize _ t) = t
-
       getter (CValue _ t) = t
       getter (CWhile _ _ t) = t
+      getter (CRuntimeError _ t) = t
       setter (CMultiExpr a _) t = CMultiExpr a t
       setter (CIfThenElse a b c _) t = CIfThenElse a b c t
       setter (CLetRec a b _) t = CLetRec a b t
@@ -65,6 +68,8 @@ instance HasTypeExpr CExpr where
       setter (CInitialize a _) t = CInitialize a t
       setter (CValue a _) t = CValue a t
       setter (CWhile a b _) t = CWhile a b t
+      setter (CRuntimeError a _) t = CRuntimeError a t
+
 instance HasTypeExpr CLValue where
   _typeExpr = lens getter setter
     where

@@ -50,7 +50,7 @@ library
   build-tools:         alex, happy
 
 executable hscaml-exe
-  hs-source-dirs:      App
+  hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:       base

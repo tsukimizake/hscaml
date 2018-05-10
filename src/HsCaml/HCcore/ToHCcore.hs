@@ -15,6 +15,9 @@ import Control.Lens.Operators
 import Data.Maybe
 import Data.Monoid
 import qualified Control.Lens as L
+import HsCaml.FrontEnd.OCamlType
+-- import Control.Monad.ST.Trans
+import Data.STRef.Strict
 
 data CExprWithRet = CExprWithRet
   {
@@ -177,12 +180,29 @@ toHCcoreM (TIfThenElse a b c t) = do
         CInitialize (CAssign ret (fromLValue $ b' ^. _ret)) (b ^. _typeExpr),
         CInitialize (CAssign ret (fromLValue $ c' ^. _ret)) (c ^. _typeExpr)] t
   pure $ CExprWithRet res ret
-toHCcoreM (TConstr _ _) = error "data constructor is not yet implemented!"
-toHCcoreM (TMatch e pats t) = tMatchToHCcoreM e pats t
+toHCcoreM (TConstr _ _) = throwSemanticsError "data constructor is not yet implemented!"
+toHCcoreM (TMatch e pats t) = do
+  pats' <- forM pats $ \pat -> do
+    matchCaseToHCcoreM e pat t
+  undefined
 -- toHCcoreM ()
 
-tMatchToHCcoreM :: TExpr -> [(Pattern, TExpr)] -> TypeExpr -> ToHCcoreM CExprWithRet
-tMatchToHCcoreM  = undefined
+throwSemanticsError :: Text -> ToHCcoreM a
+throwSemanticsError s = ToHCcoreM $ lift $ Left $ SemanticsError s
+
+matchCaseToHCcoreM :: TExpr -> (Pattern, TExpr) -> TypeExpr -> ToHCcoreM CExprWithRet
+-- matchCaseToHCcoreM  _ [] _ = throwSemanticsError "empty pattern in match expr"
+matchCaseToHCcoreM  x (pat, impl) t = do
+  xevaled <- toHCcoreM x
+  case pat of
+    ConstantPattern t v -> do
+      cond <- genSymLVar ocamlBool
+      impl' <- toHCcoreM impl
+      pure $ CExprWithRet
+        (CMultiExpr [
+            CInitialize (CAssign cond (CInfixOpExpr (xevaled ^. _ret) (Compare Equal) (CLConst v ocamlBool))) ocamlBool,
+            CIfThenElse cond (impl' ^. _cexpr) (CRuntimeError "couldn't match pattern" t) t] t)
+        (impl' ^. _ret)
 
 
 -- ((((IntC 82) :* (IntC 3)) :+ (IntC 3)) :- (Paren ((IntC 2) :- (IntC 2))) :+ (Paren (IntC 2)))

@@ -30,6 +30,7 @@ infixr ::->
 
 data CompileError = TypeError Text
                   | ParseError Text -- TODO
+                  | SemanticsError Text
                   deriving (Show)
 
 data DataCnstr = DataCnstr Name [TypeExpr]

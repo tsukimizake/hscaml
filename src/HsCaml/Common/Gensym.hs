@@ -20,7 +20,7 @@ data GensymState =
 type GensymM = GensymMT Identity
 
 newtype GensymMT m a = GensymMT {runGensymMTImpl :: StateT GensymState m a}
-  deriving (Functor, Applicative, Monad, MonadState GensymState)
+  deriving (MonadTrans, Functor, Applicative, Monad, MonadState GensymState)
 
 runGensymMT :: (Monad m) => GensymMT m a -> m a
 runGensymMT impl = evalStateT (runGensymMTImpl $ impl) initialGensymState
