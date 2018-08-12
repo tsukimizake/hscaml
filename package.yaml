@@ -1,0 +1,61 @@
+name:                hscaml
+version:             0.1.0.0
+github:              "shomasd/hscaml"
+license:             BSD3
+author:              "Shojin Masuda"
+maintainer:          "shomasd@gmail.com"
+copyright:           "2018 Shojin Masuda"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/hscaml#readme>
+
+dependencies:
+  - base >= 4.7 && < 5
+  - hspec >= 2.4.4
+  - parsec >= 3.1
+  - lens >= 4.15
+  - zippers >= 0.2
+  - text >= 1.2
+  - llvm-hs-pure >= 5.0
+  - llvm-hs >= 5.0
+  - array >= 0.5
+  - bytestring >= 0.10
+  - mtl >= 2.2
+  - containers >= 0.5
+  - monad-skeleton >= 0.1
+  - text-latin1 >= 0.3
+
+library:
+  source-dirs: src
+
+executables:
+  hscaml-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hscaml
+
+tests:
+  hscaml-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hscaml
