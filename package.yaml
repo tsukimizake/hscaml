@@ -34,7 +34,7 @@ dependencies:
   - containers >= 0.5
   - monad-skeleton >= 0.1
   - text-latin1 >= 0.3
-
+  - extensible
 library:
   source-dirs: src
 

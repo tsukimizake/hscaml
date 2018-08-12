@@ -9,7 +9,6 @@ import Data.Map as M
 import Data.Text as T
 import Control.Monad.State.Strict
 import Data.Maybe
-import Data.Monoid
 
 data GensymState =
   GensymState {
@@ -19,14 +18,13 @@ data GensymState =
 
 type GensymM = GensymMT Identity
 
-newtype GensymMT m a = GensymMT {runGensymMTImpl :: StateT GensymState m a}
-  deriving (MonadTrans, Functor, Applicative, Monad, MonadState GensymState)
+type GensymMT =  StateT GensymState
 
 runGensymMT :: (Monad m) => GensymMT m a -> m a
-runGensymMT impl = evalStateT (runGensymMTImpl $ impl) initialGensymState
+runGensymMT impl = evalStateT impl initialGensymState
 
 runGensymM :: GensymM a -> a
-runGensymM impl = evalState (runGensymMTImpl $ impl) initialGensymState
+runGensymM impl = evalState impl initialGensymState
 
 initialGensymState :: GensymState
 initialGensymState = GensymState {_counter=M.empty, _renameStack=M.empty}

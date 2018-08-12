@@ -4,31 +4,42 @@
 {-# OPTIONS -Wall #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DataKinds #-}
+
 module HsCaml.HCcore.ToHCcore where
 import HsCaml.FrontEnd.Types
 import HsCaml.HCcore.Types
 import qualified HsCaml.Common.Gensym as GS
-import Data.Text
-import Control.Monad.State.Strict
-import Control.Lens.Operators
-import Data.Maybe
-import Data.Monoid
+import Data.Extensible
 import qualified Control.Lens as L
+import Data.Text
+import Control.Lens.Operators
+import Data.Proxy
+import Control.Monad
 import HsCaml.FrontEnd.OCamlType
--- import Control.Monad.ST.Trans
-import Data.STRef.Strict
 
 data CExprWithRet = CExprWithRet
   {
     __cexpr :: CExpr,
     __ret :: CLValue
   }deriving(Show)
---
+
 L.makeLenses ''CExprWithRet
 
-newtype ToHCcoreM a = ToHCcoreM {runToHCcoreMImpl :: GS.GensymMT (Either CompileError) a}
-                    deriving (Functor, Applicative, Monad)
+type ToHCcoreM = Eff '["gs" >: GS.GensymM, "Either" >: EitherEff CompileError]
+
+runToHCcoreM :: ToHCcoreM a -> Either CompileError (a, GS.GensymState)
+runToHCcoreM = leaveEff
+  . runEitherEff
+  . flip runStateEff GS.initialGensymState
+
+-- newtype ToHCcoreM a = ToHCcoreM {runToHCcoreMImpl :: GS.GensymMT (Either CompileError) a}
+--                     deriving (Functor, Applicative, Monad)
+
+-- runToHCcoreM :: a -> (a -> ToHCcoreM b) -> Either CompileError b
+-- runToHCcoreM e impl = GS.runGensymMT . flip runStateDef GS.initialGensymState $ (impl e)
 
 toFlatMultiExpr :: [CExpr] -> CExpr
 toFlatMultiExpr xs = CMultiExpr (impl xs) (typeOfLastExpr xs)
@@ -42,47 +53,10 @@ toFlatMultiExpr xs = CMultiExpr (impl xs) (typeOfLastExpr xs)
     impl ((CMultiExpr xs _):rest) = xs ++ impl rest
     impl (x:xs) = x : impl xs
 
--- getReturnedLVar :: CExpr -> ToHCcoreM CLValue
--- getReturnedLVar (CMultiExpr (head:_) _) = getReturnedLVar head
--- getReturnedLVar (CMultiExpr [] _) = error "empty multiexpr"
--- getReturnedLVar (CIfThenElse _ ethen eelse _) = do
---   lthen <- getReturnedLVar ethen
---   rthen <- getReturnedLVar eelse
---   if lthen == rthen
---     then pure $ lthen
---     else error "last sym of then and else are not equal"
--- getReturnedLVar (CLetRec v _ _) = pure v
--- getReturnedLVar (CLetRecIn _ _ v _) = pure v
--- getReturnedLVar (CInitialize assign _) = pure $ assign ^. _lhs
--- getReturnedLVar (CValue (CLConst c) t) = pure $ CLConst c t
--- getReturnedLVar (CValue (CLVar c) t) = pure $ CLVar c t
--- getReturnedLVar (CWhile _ body _) = getReturnedLVar body
--- getReturnedLVar (CValue (CFunApply _ _) _) = undefined
--- getReturnedLVar (CValue (CInfixOpExpr _ _ _) _) = undefined
-
--- putCExpr :: CExpr -> ToHCcoreM ()
--- putCExpr e = modify' (e:)
-
-runToHCcoreM :: a -> (a -> ToHCcoreM b) -> Either CompileError b
-runToHCcoreM e impl = GS.runGensymMT . runToHCcoreMImpl $ (impl e)
-
 toHCcore :: TExpr -> Either CompileError CExpr
 toHCcore e = do
-  xs <- (GS.runGensymMT . runToHCcoreMImpl) (toHCcoreM e) :: Either CompileError CExprWithRet
+  (xs, _) <- runToHCcoreM (toHCcoreM e)
   pure $ toFlatMultiExpr [xs ^. _cexpr]
-
--- (TypeDecl "expr"
---              [DataCnstr "Plus" [(TypeAtom "expr"), (TypeAtom "expr")],
---               DataCnstr "Minus" [(TypeAtom "expr"), (TypeAtom "expr")],
---               DataCnstr "Times" [(TypeAtom "expr"), (TypeAtom "expr")],
---               DataCnstr "Divide" [(TypeAtom "expr"), (TypeAtom "expr")],
---               DataCnstr "Value" [TypeAtom "string"]])
--- (CTypeDecl "expr"
---    [CDataCnstr "Plus" [TypeAtom "expr", TypeAtom "expr"] (DCId 0),
---     CDataCnstr "Plus" [TypeAtom "expr", TypeAtom "expr"] (DCId 1),
---     CDataCnstr "Plus" [TypeAtom "expr", TypeAtom "expr"] (DCId 2),
---     CDataCnstr "Plus" [TypeAtom "expr", TypeAtom "expr"] (DCId 3)
---     CDataCnstr "Value" [TypeAtom "string"] (DCId 4)])
 
 makeCTypeDecl :: TypeDecl -> CTypeDecl
 makeCTypeDecl (TypeDecl name xs) = CTypeDecl (CType name) (setDCId 0 xs)
@@ -92,51 +66,16 @@ makeCTypeDecl (TypeDecl name xs) = CTypeDecl (CType name) (setDCId 0 xs)
     setDCId n ((DataCnstr dcname args):rest) = (CDataCnstr dcname args (DCId n)) : setDCId (n+1) rest
 
 genSym :: Text -> ToHCcoreM Sym
-genSym s = fmap Sym <$> ToHCcoreM $ GS.genSym s
+genSym s = do
+  sym <- liftEff (Proxy :: Proxy "gs") $ GS.genSym s
+  pure $ Sym sym
 
 genSymLVar :: TypeExpr -> ToHCcoreM CLValue
-genSymLVar t = fmap wrap <$> ToHCcoreM $ GS.genSym ""
+genSymLVar t = do
+  sym <- liftEff (Proxy :: Proxy "gs") $ GS.genSym ""
+  pure $ wrap sym
   where
     wrap x = CLVar (Sym x) t
-
-
-
--- reportNullPo :: Maybe CLValue -> TExpr -> ToHCcoreM ()
--- reportNullPo Nothing exp = error $ "return value of " <> show exp <> "is Nothing"
--- reprotNullPo _ _ = pure ()
-
--- destructComplexTExpr :: TExpr -> ToHCcoreM CExprWithRet
--- destructComplexTExpr (TConstant v t) = do
---   let r = (CLConst v) t
---   let res = CValue r t
---   putCExpr $ res
---   pure $ CExprWithRet res (Just r)
--- destructComplexTExpr (TVar s t) = do
---   let r = (CLVar s) t
---   let res = CValue r t
---   putCExpr $ res
---   pure $ CExprWithRet res (Just r)
--- destructComplexTExpr (TParen e _) = destructComplexTExpr e
--- destructComplexTExpr (TInfixOpExpr l op r t) = do
---   currentname <- genSym ""
---   l' <- destructComplexTExpr l
---   reportNullPo (l' ^. _ret) l
---   r' <- destructComplexTExpr r
---   reportNullPo (r' ^. _ret) r
---   pure $ CExprWithRet
---     (CMultiExpr
---       [
---         l' ^. _cexpr,
---         r' ^. _cexpr,
---         CInitialize (CAssign (CLVar currentname t) (CInfixOpExpr (fromJust $ l' ^. _ret) op (fromJust $ r' ^. _ret))) t
---       ] t)
---     (Just $ CLVar currentname t)
--- destructComplexTExpr (TBegEnd xs t) = destructComplexTExpr (TMultiExpr xs t)
--- destructComplexTExpr (TMultiExpr xs t) = do
---   ys <- mapM destructComplexTExpr xs
---   CMultiExpr ys t
-
-
 
 -- 式の返り値がある場合CLValueを返す。CExprはputCExprで構築する
 toHCcoreM :: TExpr -> ToHCcoreM CExprWithRet
@@ -180,6 +119,7 @@ toHCcoreM (TIfThenElse a b c t) = do
         CInitialize (CAssign ret (fromLValue $ b' ^. _ret)) (b ^. _typeExpr),
         CInitialize (CAssign ret (fromLValue $ c' ^. _ret)) (c ^. _typeExpr)] t
   pure $ CExprWithRet res ret
+
 toHCcoreM (TConstr _ _) = throwSemanticsError "data constructor is not yet implemented!"
 toHCcoreM (TMatch e pats t) = do
   pats' <- forM pats $ \pat -> do
@@ -188,7 +128,7 @@ toHCcoreM (TMatch e pats t) = do
 -- toHCcoreM ()
 
 throwSemanticsError :: Text -> ToHCcoreM a
-throwSemanticsError s = ToHCcoreM $ lift $ Left $ SemanticsError s
+throwSemanticsError s = throwEff (Proxy :: Proxy "Either") $ SemanticsError s
 
 matchCaseToHCcoreM :: TExpr -> (Pattern, TExpr) -> TypeExpr -> ToHCcoreM CExprWithRet
 -- matchCaseToHCcoreM  _ [] _ = throwSemanticsError "empty pattern in match expr"

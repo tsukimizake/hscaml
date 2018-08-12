@@ -1,5 +1,6 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module HsCaml.TypeChecker.CheckTypeCheckIsFinished (checkTypeCheckIsFinished) where
 
 import HsCaml.FrontEnd.Types
