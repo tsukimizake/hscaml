@@ -28,8 +28,9 @@ putTypeConstraint :: TypeConstraint -> CollectTypeConstraintsM ()
 putTypeConstraint tc = do
   modify' (S.insert tc)
 
-collectFromLetPattern :: LetPattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint) -- パターンがVarPattern/FuncLetPatternのときはそのシンボルの型を返す
-                   -- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
+-- パターンがVarPattern/FuncLetPatternのときはそのシンボルの型を返す
+-- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
+collectFromLetPattern :: LetPattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint)
 collectFromLetPattern (LetPatternPattern t mpat) rtype = collectFromMatchPattern mpat rtype
 collectFromLetPattern (FuncLetPattern t f args) rtype = do
   let functype = buildFuncType rtype (fmap snd args)
@@ -48,56 +49,56 @@ collectFromMatchPattern (VarPattern theType sym) rtype = do
   putTypeConstraint $ TypeEq theType rtype
   pure Nothing
 collectFromMatchPattern (ParenPattern theType pat) rtype = do
-  putTypeConstraint $ TypeEq (pat ^. _patType) theType
+  putTypeConstraint $ TypeEq (pat ^. patType_) theType
   collectFromMatchPattern pat rtype
 
 collectTypeConstraintsImpl :: TExpr -> CollectTypeConstraintsM TExpr
 collectTypeConstraintsImpl exp@(TIfThenElse cond fst snd t) = do
-  putTypeConstraint $ TypeEq (fst ^. _typeExpr) (snd ^. _typeExpr)
-  putTypeConstraint $ TypeEq (cond ^. _typeExpr) ocamlBool
-  putTypeConstraint $ TypeEq (fst ^. _typeExpr) t
+  putTypeConstraint $ TypeEq (fst ^. typeExpr_) (snd ^. typeExpr_)
+  putTypeConstraint $ TypeEq (cond ^. typeExpr_) ocamlBool
+  putTypeConstraint $ TypeEq (fst ^. typeExpr_) t
   pure exp
 collectTypeConstraintsImpl exp@(TLetRec pat impl t) = do
-  _ <- collectFromLetPattern pat (impl ^. _typeExpr)
+  _ <- collectFromLetPattern pat (impl ^. typeExpr_)
   pure exp
 collectTypeConstraintsImpl exp@(TLetIn pat impl body t) = do
-  _ <- collectFromLetPattern pat (impl ^. _typeExpr)
-  putTypeConstraint $ TypeEq (body ^. _typeExpr) t
+  _ <- collectFromLetPattern pat (impl ^. typeExpr_)
+  putTypeConstraint $ TypeEq (body ^. typeExpr_) t
   pure exp
 collectTypeConstraintsImpl exp@(TLetRecIn pat impl body t) = do
-  _ <- collectFromLetPattern pat (impl ^. _typeExpr)
-  putTypeConstraint $ TypeEq (body ^. _typeExpr) t
+  _ <- collectFromLetPattern pat (impl ^. typeExpr_)
+  putTypeConstraint $ TypeEq (body ^. typeExpr_) t
   pure exp
 collectTypeConstraintsImpl exp@(TFunApply func args t) = do
   let constraintType = makeConstraintType func args t
-  putTypeConstraint $ TypeEq constraintType (func ^. _typeExpr)
+  putTypeConstraint $ TypeEq constraintType (func ^. typeExpr_)
   pure exp
     where
       makeConstraintType :: TExpr -> [TExpr] -> TypeExpr -> TypeExpr
       makeConstraintType _ [] t = t
-      makeConstraintType s (x:xs) t = (x ^. _typeExpr) ::-> makeConstraintType s xs t
+      makeConstraintType s (x:xs) t = (x ^. typeExpr_) ::-> makeConstraintType s xs t
 collectTypeConstraintsImpl exp@(TParen inner outtype) = do
-  putTypeConstraint $ TypeEq (inner ^. _typeExpr) outtype
+  putTypeConstraint $ TypeEq (inner ^. typeExpr_) outtype
   _<-collectTypeConstraintsImpl inner
   pure exp
 collectTypeConstraintsImpl exp@(TInfixOpExpr l op r t)
   | elem op [Plus, Minus, Mul, Div, Mod] = do
-      putTypeConstraint $ TypeEq (l ^. _typeExpr) ocamlInt
-      putTypeConstraint $ TypeEq (r ^. _typeExpr) ocamlInt
+      putTypeConstraint $ TypeEq (l ^. typeExpr_) ocamlInt
+      putTypeConstraint $ TypeEq (r ^. typeExpr_) ocamlInt
       putTypeConstraint $ TypeEq t ocamlInt
       pure exp
   | elem op [PlusDot, MinusDot, MulDot, DivDot] = do
-      putTypeConstraint $ TypeEq (l ^. _typeExpr) ocamlFloat
-      putTypeConstraint $ TypeEq (r ^. _typeExpr) ocamlFloat
+      putTypeConstraint $ TypeEq (l ^. typeExpr_) ocamlFloat
+      putTypeConstraint $ TypeEq (r ^. typeExpr_) ocamlFloat
       putTypeConstraint $ TypeEq t ocamlFloat
       pure exp
   | elem op [BoolAnd, BoolOr] = do
-      putTypeConstraint $ TypeEq (l ^. _typeExpr) ocamlBool
-      putTypeConstraint $ TypeEq (r ^. _typeExpr) ocamlBool
+      putTypeConstraint $ TypeEq (l ^. typeExpr_) ocamlBool
+      putTypeConstraint $ TypeEq (r ^. typeExpr_) ocamlBool
       putTypeConstraint $ TypeEq t ocamlBool
       pure exp
   | isComp op = do
-      putTypeConstraint $ TypeEq (l ^. _typeExpr) (r ^. _typeExpr)
+      putTypeConstraint $ TypeEq (l ^. typeExpr_) (r ^. typeExpr_)
       putTypeConstraint $ TypeEq t ocamlBool
       pure exp
   | otherwise = do
@@ -107,7 +108,7 @@ collectTypeConstraintsImpl exp@(TInfixOpExpr l op r t)
       isComp _ = False
 collectTypeConstraintsImpl exp@(TMultiExpr xs t) = do
   let last = xs !! (length xs - 1)
-  putTypeConstraint $ TypeEq (last ^. _typeExpr) t
+  putTypeConstraint $ TypeEq (last ^. typeExpr_) t
   pure exp
 collectTypeConstraintsImpl exp = pure exp
 

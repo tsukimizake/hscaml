@@ -16,7 +16,7 @@ checkTypeCheckIsFinished = traverseTExpr impl
     isCorrectlyInferedType UnspecifiedType = False
     isCorrectlyInferedType _ = True
     impl :: TExpr -> Either CompileError TExpr
-    impl e = let isOK = isCorrectlyInferedType $ e ^. _typeExpr
+    impl e = let isOK = isCorrectlyInferedType $ e ^. typeExpr_
              in if isOK
                 then Right e
-                else Left . TypeError $ (pack . show) (e ^. _typeExpr) <> " couldn't be infered!\n in Expr" <> (pack . show) (toExpr e)
+                else Left . TypeError $ (pack . show) (e ^. typeExpr_) <> " couldn't be infered!\n in Expr" <> (pack . show) (toExpr e)

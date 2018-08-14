@@ -160,8 +160,8 @@ instance TypeVarReplaceable TypeExpr where
 
 data TypeConstraint =
   TypeEq{
-  __lhs :: TypeExpr,
-  __rhs :: TypeExpr
+  _lhs_ :: TypeExpr,
+  _rhs_ :: TypeExpr
   } deriving (Show, Ord, Eq)
 
 
@@ -189,7 +189,7 @@ instance TypeVarReplaceable TExpr where
       replaceInPatterns (TLetRecIn p a b c) = TLetRecIn (replaceTypeVar from to p) a b c
       replaceInPatterns x = x
       impl :: TExpr -> TExpr
-      impl e = replaceInPatterns $ e & _typeExpr .~ (replaceTypeVar from to (e ^. _typeExpr))
+      impl e = replaceInPatterns $ e & typeExpr_ .~ (replaceTypeVar from to (e ^. typeExpr_))
 
 toTV :: TypeExpr -> Either CompileError TV
 toTV (TypeVar s) = pure $ TV s

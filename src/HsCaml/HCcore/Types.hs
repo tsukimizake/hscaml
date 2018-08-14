@@ -27,8 +27,8 @@ newtype CType = CType Name deriving (Show, Eq, Ord)
 data CDataCnstr = CDataCnstr Name [TypeExpr] DCId deriving (Show)
 
 data CAssign = CAssign {
-  __lhs :: CLValue,
-  __rhs :: CRValue
+  _lhs_ :: CLValue,
+  _rhs_ :: CRValue
   }deriving(Show)
 
 makeLenses ''CAssign
@@ -51,7 +51,7 @@ data CTopLevel = CTopLevelExpr CExpr
                deriving(Show)
 
 instance HasTypeExpr CExpr where
-  _typeExpr = lens getter setter
+  typeExpr_ = lens getter setter
     where
       getter (CMultiExpr _ t) = t
       getter (CMatch _ _ t) = t
@@ -71,7 +71,7 @@ instance HasTypeExpr CExpr where
       setter (CRuntimeError a _) t = CRuntimeError a t
 
 instance HasTypeExpr CLValue where
-  _typeExpr = lens getter setter
+  typeExpr_ = lens getter setter
     where
       getter (CLConst _ t) = t
       getter (CLVar _ t) = t

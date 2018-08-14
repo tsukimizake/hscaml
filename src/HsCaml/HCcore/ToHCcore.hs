@@ -22,8 +22,8 @@ import HsCaml.FrontEnd.OCamlType
 
 data CExprWithRet = CExprWithRet
   {
-    __cexpr :: CExpr,
-    __ret :: CLValue
+    _cexpr_ :: CExpr,
+    _ret_ :: CLValue
   }deriving(Show)
 
 L.makeLenses ''CExprWithRet
@@ -46,7 +46,7 @@ toFlatMultiExpr xs = CMultiExpr (impl xs) (typeOfLastExpr xs)
   where
     typeOfLastExpr :: [CExpr] -> TypeExpr
     typeOfLastExpr [] = error "typeOfLastExpr of empty list"
-    typeOfLastExpr [x] = x ^. _typeExpr
+    typeOfLastExpr [x] = x ^. typeExpr_
     typeOfLastExpr (_:xs) = typeOfLastExpr xs
     impl :: [CExpr] -> [CExpr]
     impl [] = []
@@ -56,7 +56,7 @@ toFlatMultiExpr xs = CMultiExpr (impl xs) (typeOfLastExpr xs)
 toHCcore :: TExpr -> Either CompileError CExpr
 toHCcore e = do
   (xs, _) <- runToHCcoreM (toHCcoreM e)
-  pure $ toFlatMultiExpr [xs ^. _cexpr]
+  pure $ toFlatMultiExpr [xs ^. cexpr_]
 
 makeCTypeDecl :: TypeDecl -> CTypeDecl
 makeCTypeDecl (TypeDecl name xs) = CTypeDecl (CType name) (setDCId 0 xs)
@@ -92,11 +92,11 @@ toHCcoreM (TInfixOpExpr l op r t) = do
   r' <- toHCcoreM r
   let res = CMultiExpr
         [
-          l' ^. _cexpr,
-          r' ^. _cexpr,
+          l' ^. cexpr_,
+          r' ^. cexpr_,
           CInitialize (CAssign
                        (CLVar currentname t)
-                       (CInfixOpExpr (l' ^. _ret) op (r' ^. _ret))) t
+                       (CInfixOpExpr (l' ^. ret_) op (r' ^. ret_))) t
         ] t
   pure $ CExprWithRet res (CLVar currentname t)
 toHCcoreM (TBegEnd x _) = toHCcoreM x
@@ -107,22 +107,22 @@ toHCcoreM (TIfThenElse a b c t) = do
   a' <- toHCcoreM a
   b' <- toHCcoreM b
   c' <- toHCcoreM c
-  ret <- genSymLVar (b ^. _typeExpr)
+  ret <- genSymLVar (b ^. typeExpr_)
   -- let iteExpr =  CIfThenElse
-  --       (a' ^. _ret)
-  --       (CValue (b' ^. _ret) (b ^. _typeExpr))
-  --       (CValue (c' ^. _ret) (c ^. _typeExpr)) t
-  let matchExpr = CMatch (a' ^. _ret) [
-        (ConstantPattern ocamlBool (BoolVal True),  (CValue (b' ^. _ret) (b ^. _typeExpr))),
-        (ConstantPattern ocamlBool (BoolVal False), (CValue (c' ^. _ret) (c ^. _typeExpr)))
+  --       (a' ^. ret_)
+  --       (CValue (b' ^. ret_) (b ^. typeExpr_))
+  --       (CValue (c' ^. ret_) (c ^. typeExpr_)) t
+  let matchExpr = CMatch (a' ^. ret_) [
+        (ConstantPattern ocamlBool (BoolVal True),  (CValue (b' ^. ret_) (b ^. typeExpr_))),
+        (ConstantPattern ocamlBool (BoolVal False), (CValue (c' ^. ret_) (c ^. typeExpr_)))
         ] t
 
   let res =
         CMultiExpr [
-        a' ^. _cexpr,
+        a' ^. cexpr_,
         matchExpr,
-        CInitialize (CAssign ret (fromLValue $ b' ^. _ret)) (b ^. _typeExpr),
-        CInitialize (CAssign ret (fromLValue $ c' ^. _ret)) (c ^. _typeExpr)] t
+        CInitialize (CAssign ret (fromLValue $ b' ^. ret_)) (b ^. typeExpr_),
+        CInitialize (CAssign ret (fromLValue $ c' ^. ret_)) (c ^. typeExpr_)] t
   pure $ CExprWithRet res ret
 
 toHCcoreM (TConstr _ _) = throwSemanticsError "data constructor is not yet implemented!"
@@ -130,8 +130,8 @@ toHCcoreM (TMatch e pats t) = do
   e' <- toHCcoreM e
   retSym <- genSymLVar t
   pats' <- forM pats $ \pat -> do
-    matchCaseToHCcoreM (e' ^. _ret) retSym pat t
-  pure $ CExprWithRet (CMatch (e' ^. _ret) pats' t) retSym
+    matchCaseToHCcoreM (e' ^. ret_) retSym pat t
+  pure $ CExprWithRet (CMatch (e' ^. ret_) pats' t) retSym
 
 throwSemanticsError :: Text -> ToHCcoreM a
 throwSemanticsError s = throwEff (Proxy :: Proxy "err") $ SemanticsError s
@@ -142,7 +142,7 @@ matchCaseToHCcoreM x ret (pat, impl) t = do
     ConstantPattern pt v -> do
       cond <- genSymLVar ocamlBool
       impl' <- toHCcoreM impl
-      pure $ (pat, CMultiExpr [(impl' ^. _cexpr), CInitialize (CAssign ret (fromLValue $ impl' ^. _ret)) pt] pt) -- retに代入
+      pure $ (pat, CMultiExpr [(impl' ^. cexpr_), CInitialize (CAssign ret (fromLValue $ impl' ^. ret_)) pt] pt)
 
 
 -- ((((IntC 82) :* (IntC 3)) :+ (IntC 3)) :- (Paren ((IntC 2) :- (IntC 2))) :+ (Paren (IntC 2)))

@@ -89,31 +89,31 @@ data TStatement = TStatement [TExpr] [TypeDecl] deriving (Show, Eq)
 
 data LetPattern =
  FuncLetPattern {
-  __lpatType :: TypeExpr,
-  __funcsym :: Sym,
-  __args :: [(Sym, TypeExpr)]
+  _lpatType_ :: TypeExpr,
+  _funcsym_ :: Sym,
+  _args_ :: [(Sym, TypeExpr)]
 }| LetPatternPattern{
-  __lpatType :: TypeExpr,
-  __pat :: Pattern
+  _lpatType_ :: TypeExpr,
+  _pat_ :: Pattern
   } deriving (Show, Eq, Ord)
 
 data Pattern =
   ConstantPattern {
-  __mpatType :: TypeExpr,
-  __val :: Value
+  _mpatType_ :: TypeExpr,
+  _val_ :: Value
   }| ParenPattern {
-  __mpatType :: TypeExpr,
-  __mpat :: Pattern
+  _mpatType_ :: TypeExpr,
+  _mpat_ :: Pattern
   }| ListPattern {
-  __mpatType :: TypeExpr,
-  __patterns :: [Pattern]
+  _mpatType_ :: TypeExpr,
+  _patterns_ :: [Pattern]
   }| OrPattern {
-  __mpatType :: TypeExpr,
-  __left :: Pattern,
-  __right :: Pattern
+  _mpatType_ :: TypeExpr,
+  _left_ :: Pattern,
+  _right_ :: Pattern
   }| VarPattern {
-  __mpatType :: TypeExpr,
-  __sym :: Sym
+  _mpatType_ :: TypeExpr,
+  _sym_ :: Sym
   } deriving (Show, Eq, Ord)
 
 data Comp = LessThan | LessThanEq | Equal | GreaterThan | GreaterThanEq deriving (Show, Eq, Ord)
@@ -127,20 +127,20 @@ data InfixOp = Mul | Plus | Minus | Div
 
 L.makeLenses ''Sym
 L.makePrisms ''Expr
-L.makeClassyFor "HasTypeExpr" "_typeExpr" [] ''TypeExpr
-L.makeClassyFor "HasPatType" "_patType" [] ''TypeExpr
+L.makeClassyFor "HasTypeExpr" "typeExpr_" [] ''TypeExpr
+L.makeClassyFor "HasPatType" "patType_" [] ''TypeExpr
 L.makeLenses ''LetPattern
 L.makeLenses ''Pattern
 L.makeLenses ''TExpr
 L.makeClassyPrisms ''TExpr
 instance HasPatType LetPattern where
-  _patType = _lpatType
+  patType_ = lpatType_
 instance HasPatType Pattern where
-  _patType = _mpatType
+  patType_ = mpatType_
 
 instance HasTypeExpr TExpr where
-    _typeExpr :: L.Lens' TExpr TypeExpr
-    _typeExpr = L.lens getter setter
+    typeExpr_ :: L.Lens' TExpr TypeExpr
+    typeExpr_ = L.lens getter setter
       where
         getter :: TExpr -> TypeExpr
         getter (TConstant _ x)= x
