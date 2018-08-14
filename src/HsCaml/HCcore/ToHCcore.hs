@@ -28,7 +28,7 @@ data CExprWithRet = CExprWithRet
 
 L.makeLenses ''CExprWithRet
 
-type ToHCcoreM = Eff '["gs" >: GS.GensymM, "Either" >: EitherEff CompileError]
+type ToHCcoreM = Eff '["gs" >: GS.GensymM, "err" >: EitherEff CompileError]
 
 runToHCcoreM :: ToHCcoreM a -> Either CompileError (a, GS.GensymState)
 runToHCcoreM = leaveEff
@@ -108,41 +108,41 @@ toHCcoreM (TIfThenElse a b c t) = do
   b' <- toHCcoreM b
   c' <- toHCcoreM c
   ret <- genSymLVar (b ^. _typeExpr)
-  let iteExpr =  CIfThenElse
-        (a' ^. _ret)
-        (CValue (b' ^. _ret) (b ^. _typeExpr))
-        (CValue (c' ^. _ret) (c ^. _typeExpr)) t
+  -- let iteExpr =  CIfThenElse
+  --       (a' ^. _ret)
+  --       (CValue (b' ^. _ret) (b ^. _typeExpr))
+  --       (CValue (c' ^. _ret) (c ^. _typeExpr)) t
+  let matchExpr = CMatch (a' ^. _ret) [
+        (ConstantPattern ocamlBool (BoolVal True),  (CValue (b' ^. _ret) (b ^. _typeExpr))),
+        (ConstantPattern ocamlBool (BoolVal False), (CValue (c' ^. _ret) (c ^. _typeExpr)))
+        ] t
+
   let res =
         CMultiExpr [
         a' ^. _cexpr,
-        iteExpr,
+        matchExpr,
         CInitialize (CAssign ret (fromLValue $ b' ^. _ret)) (b ^. _typeExpr),
         CInitialize (CAssign ret (fromLValue $ c' ^. _ret)) (c ^. _typeExpr)] t
   pure $ CExprWithRet res ret
 
 toHCcoreM (TConstr _ _) = throwSemanticsError "data constructor is not yet implemented!"
 toHCcoreM (TMatch e pats t) = do
+  e' <- toHCcoreM e
+  retSym <- genSymLVar t
   pats' <- forM pats $ \pat -> do
-    matchCaseToHCcoreM e pat t
-  undefined
--- toHCcoreM ()
+    matchCaseToHCcoreM (e' ^. _ret) retSym pat t
+  pure $ CExprWithRet (CMatch (e' ^. _ret) pats' t) retSym
 
 throwSemanticsError :: Text -> ToHCcoreM a
-throwSemanticsError s = throwEff (Proxy :: Proxy "Either") $ SemanticsError s
+throwSemanticsError s = throwEff (Proxy :: Proxy "err") $ SemanticsError s
 
-matchCaseToHCcoreM :: TExpr -> (Pattern, TExpr) -> TypeExpr -> ToHCcoreM CExprWithRet
--- matchCaseToHCcoreM  _ [] _ = throwSemanticsError "empty pattern in match expr"
-matchCaseToHCcoreM  x (pat, impl) t = do
-  xevaled <- toHCcoreM x
+matchCaseToHCcoreM :: CLValue -> CLValue -> (Pattern, TExpr) -> TypeExpr -> ToHCcoreM (Pattern, CExpr)
+matchCaseToHCcoreM x ret (pat, impl) t = do
   case pat of
-    ConstantPattern t v -> do
+    ConstantPattern pt v -> do
       cond <- genSymLVar ocamlBool
       impl' <- toHCcoreM impl
-      pure $ CExprWithRet
-        (CMultiExpr [
-            CInitialize (CAssign cond (CInfixOpExpr (xevaled ^. _ret) (Compare Equal) (CLConst v ocamlBool))) ocamlBool,
-            CIfThenElse cond (impl' ^. _cexpr) (CRuntimeError "couldn't match pattern" t) t] t)
-        (impl' ^. _ret)
+      pure $ (pat, CMultiExpr [(impl' ^. _cexpr), CInitialize (CAssign ret (fromLValue $ impl' ^. _ret)) pt] pt) -- retに代入
 
 
 -- ((((IntC 82) :* (IntC 3)) :+ (IntC 3)) :- (Paren ((IntC 2) :- (IntC 2))) :+ (Paren (IntC 2)))

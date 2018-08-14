@@ -34,7 +34,7 @@ data CAssign = CAssign {
 makeLenses ''CAssign
 
 data CExpr = CMultiExpr [CExpr] TypeExpr
-           | CIfThenElse CLValue CExpr CExpr TypeExpr
+           | CMatch CLValue [(Pattern, CExpr)] TypeExpr
            | CLetRec CLValue CExpr TypeExpr
            | CLetRecIn CLValue CExpr CLValue TypeExpr
            | CInitialize CAssign TypeExpr
@@ -54,7 +54,7 @@ instance HasTypeExpr CExpr where
   _typeExpr = lens getter setter
     where
       getter (CMultiExpr _ t) = t
-      getter (CIfThenElse _ _ _ t) = t
+      getter (CMatch _ _ t) = t
       getter (CLetRec _ _ t) = t
       getter (CLetRecIn _ _ _ t) = t
       getter (CInitialize _ t) = t
@@ -62,7 +62,7 @@ instance HasTypeExpr CExpr where
       getter (CWhile _ _ t) = t
       getter (CRuntimeError _ t) = t
       setter (CMultiExpr a _) t = CMultiExpr a t
-      setter (CIfThenElse a b c _) t = CIfThenElse a b c t
+      setter (CMatch v xs _) t = CMatch v xs t
       setter (CLetRec a b _) t = CLetRec a b t
       setter (CLetRecIn a b c _) t = CLetRecIn a b c t
       setter (CInitialize a _) t = CInitialize a t
