@@ -1,4 +1,4 @@
-{-# OPTIONS -Wall -Wno-name-shadowing #-}
+{-# OPTIONS -Wincomplete-patterns -Wno-name-shadowing #-}
 {-# LANGUAGE TemplateHaskell #-}
 module HsCaml.TypeChecker.CollectTypeConstraints (collectTypeConstraints, collectTypeConstraintsStmt, TypeConstraint(TypeEq)) where
 import Control.Lens as L

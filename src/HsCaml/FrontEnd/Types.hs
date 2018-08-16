@@ -1,4 +1,3 @@
-{-# OPTIONS -Wall #-}
 {-# LANGUAGE InstanceSigs, TemplateHaskell, PatternSynonyms, MultiParamTypeClasses, FunctionalDependencies, TypeSynonymInstances, OverloadedStrings #-}
 module HsCaml.FrontEnd.Types where
 
@@ -39,6 +38,9 @@ data DataCnstr = DataCnstr Name [TypeExpr]
 data TypeDecl = TypeDecl Name [DataCnstr]
               deriving (Show, Eq)
 
+data TypeEnv = TypeEnv [TypeDecl]
+              deriving (Show)
+
 -- 式
 data Expr = Constant Value
           | Var Sym
@@ -58,7 +60,6 @@ data Expr = Constant Value
           | List [Expr]
           | Array [Expr]
           deriving(Show, Eq, Ord)
-
 
 -- 型付いた式
 data TExpr = TConstant Value TypeExpr
@@ -114,6 +115,11 @@ data Pattern =
   }| VarPattern {
   _mpatType_ :: TypeExpr,
   _sym_ :: Sym
+  }| ConstrPattern{
+  _mpatType_ :: TypeExpr,
+  _constr_ :: Sym,
+  _rest_ :: Pattern,
+  _dcId_ :: Maybe Int
   } deriving (Show, Eq, Ord)
 
 data Comp = LessThan | LessThanEq | Equal | GreaterThan | GreaterThanEq deriving (Show, Eq, Ord)

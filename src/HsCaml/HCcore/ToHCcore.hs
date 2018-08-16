@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# OPTIONS -Wall #-}
+{-# OPTIONS -Wincomplete-patterns #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
@@ -14,12 +14,13 @@ import HsCaml.HCcore.Types
 import qualified HsCaml.Common.Gensym as GS
 import Data.Extensible
 import qualified Control.Lens as L
-import Data.Text
+import qualified Data.Text as T
 import Control.Lens.Operators
 import Data.Proxy
 import Control.Monad
 import HsCaml.FrontEnd.OCamlType
-
+import Control.Monad.Reader
+import Data.Maybe
 data CExprWithRet = CExprWithRet
   {
     _cexpr_ :: CExpr,
@@ -28,10 +29,11 @@ data CExprWithRet = CExprWithRet
 
 L.makeLenses ''CExprWithRet
 
-type ToHCcoreM = Eff '["gs" >: GS.GensymM, "err" >: EitherEff CompileError]
+type ToHCcoreM = Eff '["gs" >: GS.GensymM, "err" >: EitherEff CompileError, "te" >: ReaderEff TypeEnv]
 
-runToHCcoreM :: ToHCcoreM a -> Either CompileError (a, GS.GensymState)
-runToHCcoreM = leaveEff
+runToHCcoreM :: TypeEnv -> ToHCcoreM a -> Either CompileError (a, GS.GensymState)
+runToHCcoreM te = leaveEff
+  . flip runReaderEff te
   . runEitherEff
   . flip runStateEff GS.initialGensymState
 
@@ -53,9 +55,9 @@ toFlatMultiExpr xs = CMultiExpr (impl xs) (typeOfLastExpr xs)
     impl ((CMultiExpr xs _):rest) = xs ++ impl rest
     impl (x:xs) = x : impl xs
 
-toHCcore :: TExpr -> Either CompileError CExpr
-toHCcore e = do
-  (xs, _) <- runToHCcoreM (toHCcoreM e)
+toHCcore :: TExpr -> TypeEnv -> Either CompileError CExpr
+toHCcore e te = do
+  (xs, _) <- runToHCcoreM te (toHCcoreM e)
   pure $ toFlatMultiExpr [xs ^. cexpr_]
 
 makeCTypeDecl :: TypeDecl -> CTypeDecl
@@ -65,7 +67,7 @@ makeCTypeDecl (TypeDecl name xs) = CTypeDecl (CType name) (setDCId 0 xs)
     setDCId _ [] = []
     setDCId n ((DataCnstr dcname args):rest) = (CDataCnstr dcname args (DCId n)) : setDCId (n+1) rest
 
-genSym :: Text -> ToHCcoreM Sym
+genSym :: T.Text -> ToHCcoreM Sym
 genSym s = do
   sym <- liftEff (Proxy :: Proxy "gs") $ GS.genSym s
   pure $ Sym sym
@@ -133,17 +135,49 @@ toHCcoreM (TMatch e pats t) = do
     matchCaseToHCcoreM (e' ^. ret_) retSym pat t
   pure $ CExprWithRet (CMatch (e' ^. ret_) pats' t) retSym
 
-throwSemanticsError :: Text -> ToHCcoreM a
+throwSemanticsError :: T.Text -> ToHCcoreM a
 throwSemanticsError s = throwEff (Proxy :: Proxy "err") $ SemanticsError s
 
 matchCaseToHCcoreM :: CLValue -> CLValue -> (Pattern, TExpr) -> TypeExpr -> ToHCcoreM (Pattern, CExpr)
-matchCaseToHCcoreM x ret (pat, impl) t = do
+matchCaseToHCcoreM x ret (pat, body) t = do
+  body' <- toHCcoreM body
   case pat of
-    ConstantPattern pt v -> do
-      cond <- genSymLVar ocamlBool
-      impl' <- toHCcoreM impl
-      pure $ (pat, CMultiExpr [(impl' ^. cexpr_), CInitialize (CAssign ret (fromLValue $ impl' ^. ret_)) pt] pt)
+    ConstantPattern _ _ -> do
+      pure $ (pat, CMultiExpr [
+                 (body' ^. cexpr_),
+                 CInitialize (CAssign ret (fromLValue $ body' ^. ret_)) t]
+                   t)
+    VarPattern pt v -> do
+      pure $ (pat, CMultiExpr [
+                 (CInitialize (CAssign (CLVar v pt) (fromLValue x)) pt),
+                 (body' ^. cexpr_),
+                 CInitialize (CAssign ret (fromLValue $ body' ^. ret_)) t]
+                   t)
+    ParenPattern _ innerpat ->
+      matchCaseToHCcoreM x ret (innerpat , body) t
+    ListPattern pt pats -> do
+      pure $ (pat, body' ^. cexpr_)
+    OrPattern pt l r -> do
+      pure $ (pat, body' ^. cexpr_)
+    ConstrPattern pt (Sym cnstrName) rest _ -> do
+      typeEnv <- askEff (Proxy :: Proxy "te")
+      dcId <- getDataCnstrId typeEnv cnstrName
+      pure $ (pat & dcId_ .~ Just dcId, body' ^. cexpr_)
 
+getDataCnstrId :: TypeEnv -> Name -> ToHCcoreM Int
+getDataCnstrId (TypeEnv tds) name = do
+  let resl = catMaybes $ fmap (getDataCnstrIdImpl 0 name) tds
+  if length resl == 0
+    then throwSemanticsError $ " data constructor " <> name <> " not found in type " <> name
+    else if length resl > 1
+         then throwSemanticsError $ " data constructor " <> name <> " found more than once in type " <> name
+         else pure . fromJust . listToMaybe $ resl
+  where
+    getDataCnstrIdImpl :: Int -> Name -> TypeDecl -> Maybe Int
+    getDataCnstrIdImpl n nameToSearch (TypeDecl name []) = Nothing
+    getDataCnstrIdImpl n nameToSearch (TypeDecl name (x:xs)) = if name == nameToSearch
+                                                               then pure n
+                                                               else getDataCnstrIdImpl (n+1) nameToSearch (TypeDecl name xs)
 
 -- ((((IntC 82) :* (IntC 3)) :+ (IntC 3)) :- (Paren ((IntC 2) :- (IntC 2))) :+ (Paren (IntC 2)))
 -- a = ((IntC 82) :* (IntC 3))
