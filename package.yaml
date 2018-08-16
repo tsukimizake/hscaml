@@ -35,6 +35,8 @@ dependencies:
   - monad-skeleton >= 0.1
   - text-latin1 >= 0.3
   - extensible
+ghc-options:
+  - -Wincomplete-patterns
 library:
   source-dirs: src
 
@@ -46,6 +48,7 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wincomplete-patterns
     dependencies:
     - hscaml
 
@@ -57,5 +60,6 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wincomplete-patterns
     dependencies:
     - hscaml
