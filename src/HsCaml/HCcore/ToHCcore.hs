@@ -21,6 +21,7 @@ import Control.Monad
 import HsCaml.FrontEnd.OCamlType
 import Control.Monad.Reader
 import Data.Maybe
+import TextShow
 data CExprWithRet = CExprWithRet
   {
     _cexpr_ :: CExpr,
@@ -167,17 +168,18 @@ matchCaseToHCcoreM x ret (pat, body) t = do
 getDataCnstrId :: TypeEnv -> Name -> ToHCcoreM Int
 getDataCnstrId (TypeEnv tds) name = do
   let resl = catMaybes $ fmap (getDataCnstrIdImpl 0 name) tds
-  if length resl == 0
-    then throwSemanticsError $ " data constructor " <> name <> " not found in type " <> name
-    else if length resl > 1
-         then throwSemanticsError $ " data constructor " <> name <> " found more than once in type " <> name
-         else pure . fromJust . listToMaybe $ resl
+  case length resl of
+    0 -> throwSemanticsError $ " data constructor " <> name <> " not found in type " <> name
+    1 -> pure . fromJust . listToMaybe $ resl
+    n -> throwSemanticsError $ " data constructor " <> name <> "found" <> showt n <> " times in type " <> name
+
   where
     getDataCnstrIdImpl :: Int -> Name -> TypeDecl -> Maybe Int
     getDataCnstrIdImpl n nameToSearch (TypeDecl name []) = Nothing
-    getDataCnstrIdImpl n nameToSearch (TypeDecl name (x:xs)) = if name == nameToSearch
-                                                               then pure n
-                                                               else getDataCnstrIdImpl (n+1) nameToSearch (TypeDecl name xs)
+    getDataCnstrIdImpl n nameToSearch (TypeDecl name (x:xs)) =
+      if name == nameToSearch
+      then pure n
+      else getDataCnstrIdImpl (n+1) nameToSearch (TypeDecl name xs)
 
 -- ((((IntC 82) :* (IntC 3)) :+ (IntC 3)) :- (Paren ((IntC 2) :- (IntC 2))) :+ (Paren (IntC 2)))
 -- a = ((IntC 82) :* (IntC 3))

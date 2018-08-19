@@ -16,9 +16,7 @@ import Data.Map as M
 import Data.Maybe
 import Data.Set as S
 import Debug.Trace
-
-textShow :: (Show a) => a -> Text
-textShow = pack . show
+import TextShow
 
 type SymName = Text
 type TypeName = Text
@@ -62,7 +60,7 @@ genTypeVar symm (Just tname)
             genNewTypeName defaultName = do
               n <- L.use _genSymNumber
               _genSymNumber .= (n+1)
-              pure $ "_" <> defaultName <> textShow n
+              pure $ "_" <> defaultName <> showt n
 
 symToText :: Sym -> Text
 symToText (Sym x) = x

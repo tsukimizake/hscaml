@@ -35,6 +35,7 @@ dependencies:
   - monad-skeleton >= 0.1
   - text-latin1 >= 0.3
   - extensible
+  - text-show
 ghc-options:
   - -Wincomplete-patterns
 library:
