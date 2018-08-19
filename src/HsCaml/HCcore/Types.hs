@@ -29,7 +29,7 @@ data CDataCnstr = CDataCnstr Name [TypeExpr] DCId deriving (Show)
 data CAssign = CAssign {
   _lhs_ :: CLValue,
   _rhs_ :: CRValue
-  }deriving(Show)
+  }deriving(Show, Eq)
 
 makeLenses ''CAssign
 
@@ -41,7 +41,7 @@ data CExpr = CMultiExpr [CExpr] TypeExpr
            | CValue CLValue TypeExpr
            | CWhile CLValue CExpr TypeExpr
            | CRuntimeError Text TypeExpr
-           deriving (Show)
+           deriving (Show, Eq)
 
 data CTypeDecl = CTypeDecl CType [CDataCnstr]
                deriving(Show)

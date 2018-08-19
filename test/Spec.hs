@@ -13,19 +13,11 @@ import HsCaml.TypeChecker.TypeChecker
 import HsCaml.Parser.Parser
 import ParserSpec
 import TypeCheckSpec
+import HCcoreSpec
 import Control.Monad.State
-
-specExpr :: String -> Expr -> TExpr -> [TypeConstraint] -> Spec
-specExpr input parsed initialTypeInfered constraints = it input $ do
-    let expr = renameSymsByScope . parseExpr $ input
-    expr `shouldBe` parsed
-    let texpr = initialTypeInfer expr
-    texpr `shouldBe` initialTypeInfered
-    let cs = collectTypeConstraints texpr
-    -- traceM $ show texpr
-    cs `shouldBe` S.fromList constraints
 
 main :: IO ()
 main = do
     hspec parserSpec
     hspec typeCheckSpec
+    hspec hcCoreSpec

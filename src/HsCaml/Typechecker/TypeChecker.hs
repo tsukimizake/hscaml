@@ -17,7 +17,7 @@ import HsCaml.TypeChecker.CheckTypeCheckIsFinished
 
 typeCheck :: Expr -> Either CompileError TExpr
 typeCheck e = do
-  let e' = renameSymsByScope e
+  e' <- renameSymsByScope e
   let te' = initialTypeInfer e'
   -- traceM $ show $ te'
   let constraints = collectTypeConstraints te'

@@ -15,6 +15,20 @@ import HsCaml.TypeChecker.CollectTypeConstraints
 import HsCaml.TypeChecker.InitialTypeInfer
 import HsCaml.TypeChecker.TypeChecker
 
+testRSBS :: String -> Expr -> Spec
+testRSBS src ast = it src $ do
+  let res = renameSymsByScope . parseExpr $ src
+  case res of
+    Left err -> error $ show err
+    Right res' -> res' `shouldBe` ast
+
+testInitialTypeInfer :: String -> TExpr -> Spec
+testInitialTypeInfer src ast = it src $ do
+  let res = fmap initialTypeInfer . renameSymsByScope . parseExpr $ src
+  case res of
+    Left err -> error $ show err
+    Right res' -> res' `shouldBe` ast
+
 testTypeCheckExpr :: String -> TExpr -> Spec
 testTypeCheckExpr src ast = it src $ do
   let res = typeCheck . parseExpr $ src
@@ -24,54 +38,53 @@ testTypeCheckExpr src ast = it src $ do
 
 collectConstraintsSpec :: String -> [TypeConstraint] -> Spec
 collectConstraintsSpec s cs = it s $ do
-    let expr = renameSymsByScope . parseExpr $ s
-    let texpr = initialTypeInfer expr
-    let constraints = collectTypeConstraints texpr
-    -- traceM $ show texpr
-    constraints `shouldBe` S.fromList cs
-
+    let constraints = do
+          expr <- renameSymsByScope . parseExpr $ s
+          let texpr = initialTypeInfer expr
+          pure $ collectTypeConstraints texpr
+    case constraints of
+      Left err -> error $ show err
+      Right constraints -> constraints `shouldBe` S.fromList cs
 
 typeCheckSpec :: Spec
 typeCheckSpec = do
-  describe "renameSymsByScope" $ it "let x = 1 in let x = 2 in let x = 3 in x" $ do
-    (renameSymsByScope . parseExpr $ "let x = 1 in let x = 2 in let x = 3 in x")
-      `shouldBe` ((LetIn
-                    (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_0")))
-                    (IntC 1)
-                    (LetIn (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_1")))
-                      (IntC 2)
-                      (LetIn (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_2")))
-                      (IntC 3)
-                       (V "_x_gen_2")))) :: Expr)
-    (renameSymsByScope . parseExpr $ "let rec a = 0 in if a=0 then 2 else 3")
-      `shouldBe` (LetRecIn
-                  (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_a_gen_0")))
-                  (Constant (IntVal 0))
-                  (IfThenElse (InfixOpExpr (Var (Sym "_a_gen_0")) (Compare Equal) (Constant (IntVal 0))) (Constant (IntVal 2)) (Constant (IntVal 3))))
-    (renameSymsByScope . parseExpr $ "let x = 0 in match x with | 42 -> x")
-      `shouldBe`
-      LetIn
+  describe "renameSymsByScope" $ do
+    testRSBS "let x = 1 in let x = 2 in let x = 3 in x" (LetIn
+       (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_0")))
+       (IntC 1)
+       (LetIn (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_1")))
+         (IntC 2)
+         (LetIn (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_2")))
+           (IntC 3)
+           (V "_x_gen_2"))))
+    testRSBS "let rec a = 0 in if a=0 then 2 else 3"
+      (LetRecIn
+       (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_a_gen_0")))
+       (Constant (IntVal 0))
+       (IfThenElse (InfixOpExpr (Var (Sym "_a_gen_0")) (Compare Equal) (Constant (IntVal 0))) (Constant (IntVal 2)) (Constant (IntVal 3))))
+    testRSBS "let x = 0 in match x with | 42 -> x"
+      (LetIn
       (LetPatternPattern
        UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_0")))
       (Constant (IntVal 0))
       (Match
        (Var (Sym "_x_gen_0"))
-       [(ConstantPattern UnspecifiedType (IntVal 42), Var (Sym "_x_gen_0"))])
-    (renameSymsByScope . parseExpr $ "let x = 0 in match x with | 42 -> true")
-      `shouldBe`
-      LetIn
+       [(ConstantPattern UnspecifiedType (IntVal 42), Var (Sym "_x_gen_0"))]))
+    testRSBS
+      "let x = 0 in match x with | 42 -> true"
+      (LetIn
       (LetPatternPattern
        UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_0")))
       (Constant (IntVal 0))
       (Match
        (Var (Sym "_x_gen_0"))
-       [(ConstantPattern UnspecifiedType (IntVal 42), (Constant (BoolVal True)))])
-  describe "initialTypeInfer" $ it "let f x y = x*y in f" $ do
-    (initialTypeInfer . renameSymsByScope . parseExpr $ "let f x y = x*y in f")
-      `shouldBe` (TLetIn
-                   (FuncLetPattern (TypeVar "_0") (Sym "_f_gen_0") [(Sym "_x_gen_0", TypeVar "_1"),(Sym "_y_gen_0", TypeVar "_2")])
-                   (TInfixOpExpr (TVar (Sym "_x_gen_0") (TypeVar "_1")) Mul (TVar (Sym "_y_gen_0") (TypeVar "_2")) (TypeVar "_3"))
-                   (TVar (Sym "_f_gen_0") (TypeVar "_0")) (TypeVar "_4"))
+       [(ConstantPattern UnspecifiedType (IntVal 42), (Constant (BoolVal True)))]))
+  describe "initialTypeInfer" $ do
+    testInitialTypeInfer "let f x y = x*y in f"
+      (TLetIn
+        (FuncLetPattern (TypeVar "_0") (Sym "_f_gen_0") [(Sym "_x_gen_0", TypeVar "_1"),(Sym "_y_gen_0", TypeVar "_2")])
+        (TInfixOpExpr (TVar (Sym "_x_gen_0") (TypeVar "_1")) Mul (TVar (Sym "_y_gen_0") (TypeVar "_2")) (TypeVar "_3"))
+        (TVar (Sym "_f_gen_0") (TypeVar "_0")) (TypeVar "_4"))
   describe "collectTypeInfo" $ do
     collectConstraintsSpec "let f x y = x*y in f"
       [

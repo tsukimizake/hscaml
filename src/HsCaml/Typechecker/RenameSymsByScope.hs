@@ -1,3 +1,7 @@
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
 {-# OPTIONS -Wall -Wno-name-shadowing #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -7,22 +11,32 @@ import Control.Monad.State.Strict
 import Data.Maybe
 import Control.Lens
 import HsCaml.TypeChecker.TypeCheckUtil
-import HsCaml.Common.Gensym
+import qualified HsCaml.Common.Gensym as GS
+import qualified Data.Extensible as E
+import qualified Data.Extensible.Effect.Default as E
+import Data.Proxy
+import qualified Data.Text as T
 
-pushAndRenameSym :: Name -> GensymM Name
+type RenameSymsEff = E.Eff '["State" E.>: GS.GensymM, "err" E.>: E.EitherEff CompileError]
+
+genSym :: T.Text -> RenameSymsEff T.Text
+genSym s = E.liftEff (Proxy :: Proxy "State") (GS.genSym s)
+
+pushAndRenameSym :: Name -> RenameSymsEff Name
 pushAndRenameSym s = do
         s' <- genSym s
-        stack <- use renameStack
+        stack <- use GS.renameStack
         let xs = fromMaybe [] (stack ^. at s) :: [Name]
-        renameStack .= (stack & at s ?~ (s':xs))
+        GS.renameStack .= (stack & at s ?~ (s':xs))
         pure s'
 
-popRenameStack :: Name -> GensymM ()
+popRenameStack :: Name -> RenameSymsEff ()
 popRenameStack s = do
-    stack <- use renameStack
-    let xs = fromJust (stack ^. at s)
-    renameStack .= (stack & at s ?~ Prelude.tail xs)
-    pure ()
+    stack <- use GS.renameStack
+    let xs = stack ^. at s
+    case xs of
+      Nothing -> E.throwEff (Proxy :: Proxy "err") $ SemanticsError ""
+      Just xs -> GS.renameStack .= (stack & at s ?~ Prelude.tail xs)
 
 unwrapSym :: Sym -> Name
 unwrapSym s = s ^. _name
@@ -36,14 +50,19 @@ unwrapSym s = s ^. _name
 -- in x1
 -- TODO fromJust : Nothingとかじゃなくエラー処理をですね…
 
-renameSymsByScope :: Expr -> Expr
-renameSymsByScope expr = runGensymM $ impl expr
+renameSymsByScope :: Expr -> Either CompileError Expr
+renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.initialGensymState $ impl expr
   where
-    impl :: Expr -> GensymM Expr
+    impl :: Expr -> RenameSymsEff Expr
     impl (Var (Sym s)) = do
-        stack <- use renameStack
-        let newname = stack ^. at s & fromJust & head
-        pure $ V newname
+        stack <- use GS.renameStack
+        let got = stack ^. at s -- & fromJust & head
+        case got of
+          Nothing -> E.throwEff (Proxy :: Proxy "err") . SemanticsError $ T.intercalate " " ["Symbol", s, "couldn't be found"]
+          Just xs ->
+            case length xs of
+              0 -> E.throwEff (Proxy :: Proxy "err") . SemanticsError $ T.intercalate " " ["Symbol", s, "couldn't be found"]
+              _ -> pure $ V (head xs)
     impl x@(IntC _) = pure $ x
     impl (Let (LetPatternPattern t1 (VarPattern t (Sym s))) e) = do
         e' <- impl e
