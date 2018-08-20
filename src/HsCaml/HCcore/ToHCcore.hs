@@ -88,12 +88,10 @@ toHCcoreM e@(TLet s b t) = do
 toHCcoreM e@(TLetRec s b t) = do
   b' <- toHCcoreM b
   pure $ CExprWithRet (CLetRec s (b' ^. cexpr_) t) (b' ^. ret_)
-toHCcoreM e@(TConstant _ _) = do
-  res <- toHCcoreM e
-  pure $ res
-toHCcoreM e@(TVar _ _) = do
-  res <- toHCcoreM e
-  pure $ res
+toHCcoreM (TConstant v t) = do
+  pure $ CExprWithRet (CValue (CLConst v t) t) (CLConst v t)
+toHCcoreM e@(TVar v t) = do
+  pure $ CExprWithRet (CValue (CLVar v t) t) (CLVar v t)
 toHCcoreM (TParen e _) = toHCcoreM e
 toHCcoreM (TInfixOpExpr l op r t) = do
   currentname <- genSym ""

@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wincomplete-patterns #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 module HCcoreSpec where
@@ -16,6 +17,12 @@ testToHCcore src expr env = it src $ do
     Right res -> res `shouldBe` expr
 
 hcCoreSpec :: Spec
-hcCoreSpec = do
-  -- testToHCcore ""
+hcCoreSpec = describe "toHCcore" $ do
+  testToHCcore "let a = 1"
+    (CMultiExpr
+     [CLetRec
+      (LetPatternPattern
+        (TypeAtom "int") (VarPattern (TypeAtom "int") (Sym "_a_gen_0")))
+       (CValue (CLConst (IntVal 1) (TypeAtom "int")) (TypeAtom "int")) (TypeAtom "()")] (TypeAtom "()")
+     ) (TypeEnv [])
   pure ()

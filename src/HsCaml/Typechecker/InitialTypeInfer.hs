@@ -36,7 +36,7 @@ L.makeLenses ''MangleTypeVarStat
 renameTypeVarByTypeExpr :: MangleTypeVarM Expr
 renameTypeVarByTypeExpr = undefined
 
--- もう見たsymなら同じTypeVarに、初めて見たsymなら新しいtypevarをつける(symはrenameTypeVariablesで同じ名なら同じブツだと保証済 (Value Constraintsは知らん))
+-- もう見たsymなら同じTypeVarに、初めて見たsymなら新しいtypevarをつける(symはrenameTypeVariablesで同じ名なら同じブツだと保証済)
 -- TODO let f (x:'a) (y:'a) = x*y みたいのどうすんだ？ 同じ型式の中でだけ同じtypevarは同じ。ということで、全ての型式のtypevarをリネームする前処理が必要(TODO)
 genTypeVar ::Maybe SymName -> Maybe TypeName -> MangleTypeVarM TypeExpr
 genTypeVar symm Nothing = genTypeVar symm (Just "")
@@ -56,6 +56,7 @@ genTypeVar symm (Just tname) =
         typename <- genNewTypeName tname
         varName_ %= M.insert sym typename
         pure $ TypeVar typename
+
 genNewTypeName :: MonadState MangleTypeVarStat m => Text -> m Text
 genNewTypeName defaultName = do
   n <- L.use genSymNumber_
