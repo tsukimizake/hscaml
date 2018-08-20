@@ -117,13 +117,11 @@ initialTypeInferImpl (FunApply e f) = do
 initialTypeInferImpl (Let pat f) = do
   pat' <- nameTypeVarInLetPat pat
   f' <- initialTypeInferImpl f
-  t <- genTypeVar Nothing Nothing
-  pure $ TLet pat' f' t
+  pure $ TLet pat' f' ocamlUnit
 initialTypeInferImpl (LetRec pat f) = do
   pat' <- nameTypeVarInLetPat pat
   f' <- initialTypeInferImpl f
-  t <- genTypeVar Nothing Nothing
-  pure $ TLetRec pat' f' t
+  pure $ TLetRec pat' f' ocamlUnit
 initialTypeInferImpl (LetIn pat f g) = do
   pat' <- nameTypeVarInLetPat pat
   f' <- initialTypeInferImpl f

@@ -58,6 +58,9 @@ collectTypeConstraintsImpl exp@(TIfThenElse cond fst snd t) = do
   putTypeConstraint $ TypeEq (cond ^. typeExpr_) ocamlBool
   putTypeConstraint $ TypeEq (fst ^. typeExpr_) t
   pure exp
+collectTypeConstraintsImpl exp@(TLet pat impl t) = do
+  _ <- collectFromLetPattern pat (impl ^. typeExpr_)
+  pure exp
 collectTypeConstraintsImpl exp@(TLetRec pat impl t) = do
   _ <- collectFromLetPattern pat (impl ^. typeExpr_)
   pure exp
