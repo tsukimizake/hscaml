@@ -43,6 +43,7 @@ collectFromLetPattern (FuncLetPattern t f args) rtype = do
 
 collectFromMatchPattern :: Pattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint)
 collectFromMatchPattern (ConstantPattern _ _) _ = pure Nothing
+collectFromMatchPattern (ConstrPattern _ _ _ _) _ = undefined
 collectFromMatchPattern (ListPattern _ _) _ = pure Nothing
 collectFromMatchPattern (OrPattern _ _ _) _ = pure Nothing
 collectFromMatchPattern (VarPattern theType sym) rtype = do
@@ -53,11 +54,19 @@ collectFromMatchPattern (ParenPattern theType pat) rtype = do
   collectFromMatchPattern pat rtype
 
 collectTypeConstraintsImpl :: TExpr -> CollectTypeConstraintsM TExpr
+collectTypeConstraintsImpl exp@(TConstant _ _) = pure exp
+collectTypeConstraintsImpl exp@(TVar _ _) = pure exp
+collectTypeConstraintsImpl exp@(TBegEnd _ _) = pure exp
+collectTypeConstraintsImpl exp@(TWhile _ _ _) = pure exp
+collectTypeConstraintsImpl exp@(TList _ _) = undefined
+collectTypeConstraintsImpl exp@(TArray _ _) = undefined
 collectTypeConstraintsImpl exp@(TIfThenElse cond fst snd t) = do
   putTypeConstraint $ TypeEq (fst ^. typeExpr_) (snd ^. typeExpr_)
   putTypeConstraint $ TypeEq (cond ^. typeExpr_) ocamlBool
   putTypeConstraint $ TypeEq (fst ^. typeExpr_) t
   pure exp
+collectTypeConstraintsImpl exp@(TConstr _ _) = do undefined
+collectTypeConstraintsImpl exp@(TMatch _ _ _) = do undefined
 collectTypeConstraintsImpl exp@(TLet pat impl t) = do
   _ <- collectFromLetPattern pat (impl ^. typeExpr_)
   pure exp
@@ -113,7 +122,6 @@ collectTypeConstraintsImpl exp@(TMultiExpr xs t) = do
   let last = xs !! (length xs - 1)
   putTypeConstraint $ TypeEq (last ^. typeExpr_) t
   pure exp
-collectTypeConstraintsImpl exp = pure exp
 
 collectTypeConstraints :: TExpr -> Set TypeConstraint
 collectTypeConstraints te = let
