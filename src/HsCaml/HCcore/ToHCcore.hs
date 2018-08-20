@@ -82,6 +82,12 @@ genSymLVar t = do
 
 -- 式の返り値がある場合CLValueを返す。CExprはputCExprで構築する
 toHCcoreM :: TExpr -> ToHCcoreM CExprWithRet
+toHCcoreM e@(TLet s b t) = do
+  b' <- toHCcoreM b
+  pure $ CExprWithRet (CLetRec s (b' ^. cexpr_) t) (b' ^. ret_)
+toHCcoreM e@(TLetRec s b t) = do
+  b' <- toHCcoreM b
+  pure $ CExprWithRet (CLetRec s (b' ^. cexpr_) t) (b' ^. ret_)
 toHCcoreM e@(TConstant _ _) = do
   res <- toHCcoreM e
   pure $ res
@@ -111,10 +117,6 @@ toHCcoreM (TIfThenElse a b c t) = do
   b' <- toHCcoreM b
   c' <- toHCcoreM c
   ret <- genSymLVar (b ^. typeExpr_)
-  -- let iteExpr =  CIfThenElse
-  --       (a' ^. ret_)
-  --       (CValue (b' ^. ret_) (b ^. typeExpr_))
-  --       (CValue (c' ^. ret_) (c ^. typeExpr_)) t
   let matchExpr = CMatch (a' ^. ret_) [
         (ConstantPattern ocamlBool (BoolVal True),  (CValue (b' ^. ret_) (b ^. typeExpr_))),
         (ConstantPattern ocamlBool (BoolVal False), (CValue (c' ^. ret_) (c ^. typeExpr_)))

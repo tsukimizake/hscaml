@@ -19,4 +19,4 @@ checkTypeCheckIsFinished = traverseTExpr impl
     impl e = let isOK = isCorrectlyInferedType $ e ^. typeExpr_
              in if isOK
                 then Right e
-                else Left . TypeError $ (pack . show) (e ^. typeExpr_) <> " couldn't be infered!\n in Expr" <> (pack . show) (toExpr e)
+                else Left . TypeError $ (pack . show) (e ^. typeExpr_) <> " couldn't be infered!\n in Expr " <> (pack . show) (toExpr e)

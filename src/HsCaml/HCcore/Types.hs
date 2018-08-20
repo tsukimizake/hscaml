@@ -35,8 +35,8 @@ makeLenses ''CAssign
 
 data CExpr = CMultiExpr [CExpr] TypeExpr
            | CMatch CLValue [(Pattern, CExpr)] TypeExpr
-           | CLetRec CLValue CExpr TypeExpr
-           | CLetRecIn CLValue CExpr CLValue TypeExpr
+           | CLetRec LetPattern CExpr TypeExpr
+           | CLetRecIn LetPattern CExpr CLValue TypeExpr
            | CInitialize CAssign TypeExpr
            | CValue CLValue TypeExpr
            | CWhile CLValue CExpr TypeExpr

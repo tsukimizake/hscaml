@@ -48,7 +48,6 @@ unwrapSym s = s ^. _name
 -- let x0 = 0
 -- in let x1 = 1
 -- in x1
--- TODO fromJust : Nothingとかじゃなくエラー処理をですね…
 
 renameSymsByScope :: Expr -> Either CompileError Expr
 renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.initialGensymState $ impl expr
@@ -56,7 +55,7 @@ renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.in
     impl :: Expr -> RenameSymsEff Expr
     impl (Var (Sym s)) = do
         stack <- use GS.renameStack
-        let got = stack ^. at s -- & fromJust & head
+        let got = stack ^. at s
         case got of
           Nothing -> E.throwEff (Proxy :: Proxy "err") . SemanticsError $ T.intercalate " " ["Symbol", s, "couldn't be found"]
           Just xs ->
