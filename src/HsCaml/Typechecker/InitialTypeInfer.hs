@@ -21,8 +21,8 @@ import TextShow
 type SymName = Text
 type TypeName = Text
 data MangleTypeVarStat = MangleTypeVarStat{
-  __genSymNumber :: Int,
-  __varName :: Map SymName TypeName
+  _genSymNumber_ :: Int,
+  _varName_ :: Map SymName TypeName
   }deriving(Show)
 
 initialMangleTypeVarStat :: MangleTypeVarStat
@@ -40,13 +40,13 @@ renameTypeVarByTypeExpr = undefined
 -- TODO let f (x:'a) (y:'a) = x*y みたいのどうすんだ？ 同じ型式の中でだけ同じtypevarは同じ。ということで、全ての型式のtypevarをリネームする前処理が必要(TODO)
 genTypeVar ::Maybe SymName -> Maybe TypeName -> MangleTypeVarM TypeExpr
 genTypeVar symm Nothing = genTypeVar symm (Just "")
-genTypeVar symm (Just tname)
-  | symm == Nothing = do
+genTypeVar symm (Just tname) =
+  case symm of
+    Nothing -> do
       typename <- genNewTypeName tname
       pure $ TypeVar typename
-  | otherwise = do
-      let sym = fromJust symm
-      vars <- L.use _varName
+    Just sym -> do
+      vars <- L.use varName_
       let lookedup = M.lookup sym vars
       if (isJust lookedup)
         then do
@@ -54,13 +54,13 @@ genTypeVar symm (Just tname)
         pure $ TypeVar lookedup'
         else do
         typename <- genNewTypeName tname
-        _varName %= M.insert sym typename
+        varName_ %= M.insert sym typename
         pure $ TypeVar typename
-          where
-            genNewTypeName defaultName = do
-              n <- L.use _genSymNumber
-              _genSymNumber .= (n+1)
-              pure $ "_" <> defaultName <> showt n
+genNewTypeName :: MonadState MangleTypeVarStat m => Text -> m Text
+genNewTypeName defaultName = do
+  n <- L.use genSymNumber_
+  genSymNumber_ .= (n+1)
+  pure $ "_" <> defaultName <> showt n
 
 symToText :: Sym -> Text
 symToText (Sym x) = x
