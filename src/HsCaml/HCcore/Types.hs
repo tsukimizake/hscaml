@@ -35,6 +35,8 @@ data CExpr = CMultiExpr [CExpr] TypeExpr
            | CWhile CExpr CExpr TypeExpr
            | CRuntimeError Text TypeExpr
            | CApply CLValue [CLValue] TypeExpr
+           | CList [CLValue] TypeExpr
+           | CArray [CLValue] TypeExpr
            deriving (Show, Eq)
 
 data CTypeDecl = CTypeDecl CType [CDataCnstr]

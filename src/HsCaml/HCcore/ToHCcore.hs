@@ -79,6 +79,7 @@ genSymLVar t = do
 -- getLastSym ce = undefined
 
 texprsTocexprs :: Maybe CLValue -> [TExpr] -> ToHCcoreM [CExpr]
+texprsTOcexprs _ [] = pure $ CMultiExpr []
 texprsTocexprs ret [x] = do 
   res <- toHCcoreM ret x
   pure [res]
@@ -101,28 +102,29 @@ toHCcoreM ret e@(TWhile a b t) = do
  -- g y 
  -- のように 値呼びなので引数も同様に
 toHCcoreM ret e@(TFunApply f args t) = do
-  case f of
-    (TVar fname ft) -> do
-            fret <- genSymLVar $ f ^. typeExpr_
-            f' <- toHCcoreM (Just fret) f
-            argPrimeWithArgRets <- forM args $ \arg -> do
-             argret <- genSymLVar $ arg ^. typeExpr_
-             arg' <- toHCcoreM (Just argret) arg
-             pure $ (arg', argret)
-            let args' = fmap fst argPrimeWithArgRets  :: [CExpr]
-            let argrets = fmap snd argPrimeWithArgRets :: [CLValue] 
-            pure $ CMultiExpr (f' : args' <> [CApply fret argrets t]) t
-    otherwise -> do
-       a' <- toHCcoreM ret f 
-       undefined
+  fret <- genSymLVar $ f ^. typeExpr_
+  f' <- toHCcoreM (Just fret) f
+  argPrimeWithArgRets <- forM args $ \arg -> do
+    argret <- genSymLVar $ arg ^. typeExpr_
+    arg' <- toHCcoreM (Just argret) arg
+    pure (arg', argret)
+  let args' = fmap fst argPrimeWithArgRets  :: [CExpr]
+  let argrets = fmap snd argPrimeWithArgRets :: [CLValue] 
+  pure $ CMultiExpr (f' : args' <> [CApply fret argrets t]) t
 toHCcoreM ret e@(TList xs t) = do
-  ys <- forM xs $ \x -> do
-    toHCcoreM ret x
-  undefined 
+  ys <- forM (init xs) $ \x -> do
+    xret <- genSymLVar (x ^. typeExpr_)
+    x' <- toHCcoreM (Just xret) x
+    pure (x', xret)
+  last <- toHCcoreM ret $ last xs
+  pure $ CMultiExpr (fmap fst ys <> [CList (fmap snd ys) t] <> [last]) t
 toHCcoreM ret e@(TArray xs t) = do
-  ys <- forM xs $ \x -> do
-    toHCcoreM ret x
-  undefined
+  ys <- forM (init xs) $ \x -> do
+    xret <- genSymLVar (x ^. typeExpr_)
+    x' <- toHCcoreM (Just xret) x
+    pure (x', xret)
+  last <- toHCcoreM ret $ last xs
+  pure $ CMultiExpr (fmap fst ys <> [CArray (fmap snd ys) t] <> [last]) t
 toHCcoreM ret e@(TLet s b t) = do
   b' <- toHCcoreM ret b
   pure $ CLetRec s b' t
@@ -160,7 +162,7 @@ toHCcoreM ret (TInfixOpExpr l op r t) = do
   pure res 
 toHCcoreM ret (TBegEnd x _) = toHCcoreM ret x
 toHCcoreM ret (TMultiExpr xs t) = do
-  inites <- forM (init xs) $ \x -> do
+  inites <- forM (init xs) $ \x -> 
     toHCcoreM Nothing x 
   laste <- toHCcoreM ret (last xs) 
   pure $ CMultiExpr (inites <> [laste]) t 
@@ -173,17 +175,17 @@ toHCcoreM ret (TIfThenElse a b c t) = do
   c' <- toHCcoreM (Just cret) c
   ret <- genSymLVar (c ^. typeExpr_)
   let matchExpr = CMatch aret [
-        (ConstantPattern ocamlBool (BoolVal True),  (CValue bret (b ^. typeExpr_))),
-        (ConstantPattern ocamlBool (BoolVal False), (CValue cret (c ^. typeExpr_)))
+        (ConstantPattern ocamlBool (BoolVal True),  CValue bret (b ^. typeExpr_)),
+        (ConstantPattern ocamlBool (BoolVal False), CValue cret (c ^. typeExpr_))
         ] t
 
   let res =
         CMultiExpr [
         a',
         matchExpr,
-        CInitialize ret (fromLValue $ bret) (b ^. typeExpr_),
-        CInitialize ret (fromLValue $ cret) (c ^. typeExpr_)] t
-  pure $ res
+        CInitialize ret (fromLValue bret) (b ^. typeExpr_),
+        CInitialize ret (fromLValue cret) (c ^. typeExpr_)] t
+  pure res
 toHCcoreM ret (TConstr _ _) = throwSemanticsError "data constructor is not yet implemented!"
 toHCcoreM ret (TMatch e pats t) = do
   eret <- genSymLVar (e ^. typeExpr_)
@@ -191,7 +193,7 @@ toHCcoreM ret (TMatch e pats t) = do
   retSym <- case ret of
                  Just x -> pure x
                  Nothing -> genSymLVar t
-  pats' <- forM pats $ \pat -> do
+  pats' <- forM pats $ \pat -> 
     matchCaseToHCcoreM eret retSym pat t
   pure $ CMatch eret pats' t
 
@@ -202,31 +204,31 @@ matchCaseToHCcoreM :: CLValue -> CLValue -> (Pattern, TExpr) -> TypeExpr -> ToHC
 matchCaseToHCcoreM x ret (pat, body) t = do
   body' <- toHCcoreM (Just ret) body
   case pat of
-    ConstantPattern _ _ -> do
-      pure $ (pat, CMultiExpr [
+    ConstantPattern _ _ ->
+      pure (pat, CMultiExpr [
                  body',
-                 CInitialize ret (fromLValue $ ret) t]
+                 CInitialize ret (fromLValue ret) t]
                    t)
-    VarPattern pt v -> do
-      pure $ (pat, CMultiExpr [
-                 (CInitialize (CLVar v pt) (fromLValue x) pt),
+    VarPattern pt v ->
+      pure (pat, CMultiExpr [
+                 CInitialize (CLVar v pt) (fromLValue x) pt,
                  body',
-                 CInitialize ret (fromLValue $ ret) t]
+                 CInitialize ret (fromLValue ret) t]
                    t)
     ParenPattern _ innerpat ->
       matchCaseToHCcoreM x ret (innerpat , body) t
-    ListPattern pt pats -> do
-      pure $ (pat, body')
-    OrPattern pt l r -> do
-      pure $ (pat, body')
+    ListPattern pt pats -> 
+      pure (pat, body')
+    OrPattern pt l r -> 
+      pure (pat, body')
     ConstrPattern pt (Sym cnstrName) rest _ -> do
       typeEnv <- askEff (Proxy :: Proxy "te")
       dcId <- getDataCnstrId typeEnv cnstrName
-      pure $ (pat & dcId_ .~ Just dcId, body')
+      pure (pat & dcId_ ?~ dcId, body')
 
 getDataCnstrId :: TypeEnv -> Name -> ToHCcoreM Int
 getDataCnstrId (TypeEnv tds) name = do
-  let resl = catMaybes $ fmap (getDataCnstrIdImpl 0 name) tds
+  let resl = mapMaybe (getDataCnstrIdImpl 0 name) tds
   case length resl of
     0 -> throwSemanticsError $ " data constructor " <> name <> " not found in type " <> name
     1 -> pure . fromJust . listToMaybe $ resl

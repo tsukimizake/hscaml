@@ -141,5 +141,17 @@ typeCheckSpec = do
        )
        ocamlInt
       )
+    testTypeCheckExpr "let f x y z = if x then y else z"
+       (TLet
+         (FuncLetPattern (ocamlBool ::-> TypeVar "_gen_0" ::-> TypeVar "_gen_0" ::-> TypeVar "_gen_0")
+          (Sym "_f_gen_0") [(Sym "_x_gen_0", ocamlInt), (Sym "_y_gen_0", ocamlInt),(Sym "_z_gen_0", ocamlInt)])
+        (TIfThenElse
+        (TVar (Sym "_x_gen_0") ocamlBool)
+        (TVar (Sym "_y_gen_0") (TypeVar "_gen_0"))
+        (TVar (Sym "_z_gen_0") (TypeVar "_gen_0"))
+        (TypeVar "_gen_0")
+        )
+        (TypeVar "_gen_0")
+        ) 
     -- testTypeCheckExpr "let rec length xs =  match xs with  | [] -> 0  | y::ys -> 1+length ys;;"
     --   ()

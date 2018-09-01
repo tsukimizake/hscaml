@@ -16,6 +16,7 @@ import qualified Data.Extensible as E
 import qualified Data.Extensible.Effect.Default as E
 import Data.Proxy
 import qualified Data.Text as T
+import Debug.Trace
 
 type RenameSymsEff = E.Eff '["State" E.>: GS.GensymM, "err" E.>: E.EitherEff CompileError]
 
@@ -80,11 +81,11 @@ renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.in
         popRenameStack s
         pure (LetIn (LetPatternPattern t1 (VarPattern t (Sym s'))) e1' e2')
     impl (Let (FuncLetPattern t (Sym s) xs) e) = do
-        e' <- impl e
         s' <- pushAndRenameSym s
         args' <- forM xs $ \(s, t) -> do
           s' <- pushAndRenameSym $ unwrapSym $ s
           pure (Sym s', t)
+        e' <- impl e
         popRenameStack s
         forM_ xs $ \(s, t) -> do
           s' <- popRenameStack . unwrapSym $ s
