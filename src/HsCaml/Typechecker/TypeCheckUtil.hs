@@ -162,8 +162,9 @@ data TypeConstraint =
   TypeEq{
   _lhs_ :: TypeExpr,
   _rhs_ :: TypeExpr
-  } deriving (Show, Ord, Eq)
-
+  } deriving (Ord, Eq)
+instance Show TypeConstraint where
+  show (TypeEq l r) = "(TypeEq (" <> show l <> ") (" <> show r <> "))"
 
 instance TypeVarReplaceable TypeConstraint where
   replaceTypeVar from to (TypeEq l r) = TypeEq (replaceTypeVar from to l) (replaceTypeVar from to r)

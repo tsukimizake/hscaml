@@ -36,8 +36,8 @@ testTypeCheckExpr src ast = it src $ do
     Left err -> error $ show err
     Right res' -> res' `shouldBe` ast
 
-collectConstraintsSpec :: String -> [TypeConstraint] -> Spec
-collectConstraintsSpec s cs = it s $ do
+testCollectConstraints :: String -> [TypeConstraint] -> Spec
+testCollectConstraints s cs = it s $ do
     let constraints = do
           expr <- renameSymsByScope . parseExpr $ s
           let texpr = initialTypeInfer expr
@@ -86,7 +86,7 @@ typeCheckSpec = do
         (TInfixOpExpr (TVar (Sym "_x_gen_0") (TypeVar "_1")) Mul (TVar (Sym "_y_gen_0") (TypeVar "_2")) (TypeVar "_3"))
         (TVar (Sym "_f_gen_0") (TypeVar "_0")) (TypeVar "_4"))
   describe "collectTypeInfo" $ do
-    collectConstraintsSpec "let f x y = x*y in f"
+    testCollectConstraints "let f x y = x*y in f"
       [
         TypeEq (TypeVar "_1" ::-> TypeVar "_2" ::-> TypeVar "_3") (TypeVar"_0")
       , TypeEq (TypeVar "_0") (TypeVar "_4")
@@ -95,7 +95,7 @@ typeCheckSpec = do
       , TypeEq (TypeVar "_3") ocamlInt
       ]
 
-    collectConstraintsSpec "let rec f g x = f (g x) in g"
+    testCollectConstraints "let rec f g x = f (g x) in g"
       [
         TypeEq(TypeVar "_4" ::-> TypeVar "_5") (TypeVar "_0")
       , TypeEq(TypeVar "_1" ::-> TypeVar "_2" ::-> TypeVar "_5") (TypeVar "_0")
@@ -103,7 +103,7 @@ typeCheckSpec = do
       , TypeEq (TypeVar "_2" ::-> TypeVar "_3") (TypeVar "_1")
       , TypeEq (TypeVar "_1") (TypeVar "_6")
       ]
-  collectConstraintsSpec "let rec f x = if x = 0 then 1 else x * f (x-1)"
+  testCollectConstraints "let rec f x = if x = 0 then 1 else x * f (x-1)"
     [TypeEq {_lhs_ = TypeAtom "int", _rhs_ = TypeAtom "int"},
      TypeEq {_lhs_ = TypeAtom "int", _rhs_ = TypeVar "_6"},
      TypeEq {_lhs_ = TypeAtom "int", _rhs_ = TypeVar "_7"},
@@ -143,7 +143,7 @@ typeCheckSpec = do
       )
     testTypeCheckExpr "let f x y z = if x then y else z"
        (TLet
-         (FuncLetPattern (ocamlBool ::-> TypeVar "_gen_0" ::-> TypeVar "_gen_0" ::-> TypeVar "_gen_0")
+         (FuncLetPattern (ocamlBool ::-> TypeVar "_0" ::-> TypeVar "_0" ::-> TypeVar "_0")
           (Sym "_f_gen_0") [(Sym "_x_gen_0", ocamlInt), (Sym "_y_gen_0", ocamlInt),(Sym "_z_gen_0", ocamlInt)])
         (TIfThenElse
         (TVar (Sym "_x_gen_0") ocamlBool)
