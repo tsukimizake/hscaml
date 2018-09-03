@@ -103,8 +103,9 @@ traverseTExpr f (TWhile e1 e2 t) = do
     e2'  <- traverseTExpr f e2
     f $ TWhile e1' e2' t
 traverseTExpr f (TFunApply e1 e2 t) = do
+    e1' <- traverseTExpr f e1
     e2' <- mapM f e2
-    f $ TFunApply e1 e2' t
+    f $ TFunApply e1' e2' t
 traverseTExpr f (TLet e1 e2 t) =  do
     e2'  <- traverseTExpr f e2
     f $ TLet e1 e2' t

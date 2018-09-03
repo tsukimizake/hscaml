@@ -25,7 +25,8 @@ collectTypeConstraintsStmt (TStatement texprs typedecls) = do
 type CollectTypeConstraintsM a = State (S.Set TypeConstraint) a
 
 putTypeConstraint :: TypeConstraint -> CollectTypeConstraintsM ()
-putTypeConstraint tc = do
+putTypeConstraint (TypeEq l r) | l == r = pure ()
+putTypeConstraint tc = 
   modify' (S.insert tc)
 
 -- パターンがVarPattern/FuncLetPatternのときはそのシンボルの型を返す
