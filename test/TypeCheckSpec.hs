@@ -104,7 +104,7 @@ typeCheckSpec = do
       , TypeEq (TypeVar "_1") (TypeVar "_6")
       ]
   testCollectConstraints "let rec f x = if x = 0 then 1 else x * f (x-1)"
-    [TypeEq {_lhs_ = TypeAtom "int", _rhs_ = TypeAtom "int"},
+    [
      TypeEq {_lhs_ = TypeAtom "int", _rhs_ = TypeVar "_6"},
      TypeEq {_lhs_ = TypeAtom "int", _rhs_ = TypeVar "_7"},
      TypeEq {_lhs_ = TypeVar "_1" ::-> TypeVar "_7", _rhs_ = TypeVar "_0"},
@@ -153,5 +153,16 @@ typeCheckSpec = do
         )
         (TypeVar "_gen_0")
         ) 
+    testTypeCheckExpr "let f x = x in f 0; f true;"
+      (TLetIn
+        (FuncLetPattern (TypeVar "_0" ::-> TypeVar "_0")
+          (Sym "_f_gen_0") [(Sym "_x_gen_0", TypeVar "_0")])
+        (TVar (Sym "_x_gen_0") (TypeVar "_0"))
+        (TMultiExpr [
+            TFunApply (TVar (Sym "_f_gen_0") (ocamlInt ::-> ocamlInt)) [TIntC 0] ocamlInt,
+            TFunApply (TVar (Sym "_f_gen_0") (ocamlInt ::-> ocamlInt)) [TBoolC True] ocamlBool
+          ] ocamlBool
+        ) ocamlBool)
+
     -- testTypeCheckExpr "let rec length xs =  match xs with  | [] -> 0  | y::ys -> 1+length ys;;"
     --   ()

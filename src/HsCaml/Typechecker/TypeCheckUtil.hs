@@ -164,6 +164,7 @@ data TypeConstraint =
   _lhs_ :: TypeExpr,
   _rhs_ :: TypeExpr
   } deriving (Ord, Eq)
+
 instance Show TypeConstraint where
   show (TypeEq l r) = "(TypeEq (" <> show l <> ") (" <> show r <> "))"
 

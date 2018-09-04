@@ -15,11 +15,6 @@ import HsCaml.TypeChecker.TypeCheckUtil
 import Data.Functor.Identity
 import Control.Monad.State
 import Debug.Trace
--- chooseOne [a, b, c]
--- >> [(a, [b, c]), (b, [a, c]), (c, [a, b])]
-chooseOne :: [a] -> [(a, [a])]
-chooseOne [] = []
-chooseOne (x:xs) = (x, xs) : (fmap (\(y, ys) -> (y,(x:ys))) $ chooseOne xs)
 
 isTypeVar :: TypeExpr -> Bool
 isTypeVar (TypeVar _) = True
@@ -63,7 +58,7 @@ newtype UnifyM a = UnifyM (StateT UnifyMState (Either CompileError) a) deriving 
 
 runUnifyM :: UnifyM a -> Either CompileError [TypeConstraint]
 runUnifyM (UnifyM prog) = do
-  res <- (impl `execStateT` (UnifyMState [] []))
+  res <- impl `execStateT` (UnifyMState [] [])
   pure $ res ^. _constraints
   where
     impl :: StateT UnifyMState (Either CompileError) [TypeConstraint]
