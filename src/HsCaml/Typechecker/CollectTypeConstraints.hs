@@ -51,7 +51,7 @@ collectFromMatchPattern (VarPattern theType sym) rtype = do
   putTypeConstraint $ TypeEq theType rtype
   pure Nothing
 collectFromMatchPattern (ParenPattern theType pat) rtype = do
-  putTypeConstraint $ TypeEq (pat ^. patType_) theType
+  putTypeConstraint $ TypeEq (pat ^. typeExpr_) theType
   collectFromMatchPattern pat rtype
 
 collectTypeConstraintsImpl :: TExpr -> CollectTypeConstraintsM TExpr

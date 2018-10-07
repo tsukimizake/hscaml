@@ -105,16 +105,16 @@ typeCheckSpec = do
       ]
   testCollectConstraints "let rec f x = if x = 0 then 1 else x * f (x-1)"
     [
-     TypeEq {_lhs_ = TypeAtom "int", _rhs_ = TypeVar "_6"},
-     TypeEq {_lhs_ = TypeAtom "int", _rhs_ = TypeVar "_7"},
-     TypeEq {_lhs_ = TypeVar "_1" ::-> TypeVar "_7", _rhs_ = TypeVar "_0"},
-     TypeEq {_lhs_ = TypeVar "_4" ::-> TypeVar "_5", _rhs_ = TypeVar "_0"},
-     TypeEq {_lhs_ = TypeVar "_1", _rhs_ = TypeAtom "int"},
-     TypeEq {_lhs_ = TypeVar "_2", _rhs_ = TypeAtom "bool"},
-     TypeEq {_lhs_ = TypeVar "_3", _rhs_ = TypeAtom "int"},
-     TypeEq {_lhs_ = TypeVar "_3", _rhs_ = TypeVar "_4"},
-     TypeEq {_lhs_ = TypeVar "_5", _rhs_ = TypeAtom "int"},
-     TypeEq {_lhs_ = TypeVar "_6", _rhs_ = TypeAtom "int"}]
+     TypeEq (TypeAtom "int") (TypeVar "_6"),
+     TypeEq (TypeAtom "int") (TypeVar "_7"),
+     TypeEq (TypeVar "_1" ::-> TypeVar "_7") (TypeVar "_0"),
+     TypeEq (TypeVar "_4" ::-> TypeVar "_5") (TypeVar "_0"),
+     TypeEq (TypeVar "_1") (TypeAtom "int"),
+     TypeEq (TypeVar "_2") (TypeAtom "bool"),
+     TypeEq (TypeVar "_3") (TypeAtom "int"),
+     TypeEq (TypeVar "_3") (TypeVar "_4"),
+     TypeEq (TypeVar "_5") (TypeAtom "int"),
+     TypeEq (TypeVar "_6") (TypeAtom "int")]
   describe "typecheck" $ do
     testTypeCheckExpr "let f x y = x*y in f"
       (TLetIn
@@ -143,15 +143,15 @@ typeCheckSpec = do
       )
     testTypeCheckExpr "let f x y z = if x then y else z"
        (TLet
-         (FuncLetPattern (ocamlBool ::-> TypeVar "_0" ::-> TypeVar "_0" ::-> TypeVar "_0")
-          (Sym "_f_gen_0") [(Sym "_x_gen_0", ocamlInt), (Sym "_y_gen_0", ocamlInt),(Sym "_z_gen_0", ocamlInt)])
+         (FuncLetPattern (ocamlBool ::-> TypeVar "_3" ::-> TypeVar "_3" ::-> TypeVar "_4")
+          (Sym "_f_gen_0") [(Sym "_x_gen_0", ocamlBool), (Sym "_y_gen_0", TypeVar "_3"), (Sym "_z_gen_0", TypeVar "_3")])
         (TIfThenElse
         (TVar (Sym "_x_gen_0") ocamlBool)
-        (TVar (Sym "_y_gen_0") (TypeVar "_gen_0"))
-        (TVar (Sym "_z_gen_0") (TypeVar "_gen_0"))
-        (TypeVar "_gen_0")
+        (TVar (Sym "_y_gen_0") (TypeVar "__gen_2"))
+        (TVar (Sym "_z_gen_0") (TypeVar "__gen_2"))
+        (TypeVar "__gen_2")
         )
-        (TypeVar "_gen_0")
+        (TypeVar "__gen_2")
         ) 
     testTypeCheckExpr "let f x = x in f 0; f true;"
       (TLetIn

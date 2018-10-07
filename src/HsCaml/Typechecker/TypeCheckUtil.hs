@@ -1,13 +1,36 @@
 {-# OPTIONS -Wall #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE Strict #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 module HsCaml.TypeChecker.TypeCheckUtil where
 import HsCaml.FrontEnd.Types as Types
-import Data.Text
+import qualified Data.Text as T
 import Data.Functor.Identity
 import Data.Monoid
-import Control.Lens as L
+import qualified Control.Lens as L
+import Control.Lens.Operators
 
+class ContainsTypeVar a where
+  getTypeVar :: a -> [TV]
+
+instance ContainsTypeVar TypeConstraint where
+  getTypeVar (TypeEq l r) = getTypeVar l <> getTypeVar r
+  getTypeVar (TypeOfExpr _ _ t) = getTypeVar t
+
+instance (ContainsTypeVar a) => ContainsTypeVar [a] where
+  getTypeVar xs = getTypeVar =<< xs
+
+instance ContainsTypeVar TypeExpr where
+  getTypeVar (TypeAtom _) = []
+  getTypeVar (TypeVar s) = [TV s]
+  getTypeVar (l ::-> r) = getTypeVar l <> getTypeVar r
+  getTypeVar (l ::* r) = getTypeVar l <> getTypeVar r
+  getTypeVar (l ::+ r) = getTypeVar l <> getTypeVar r
+  getTypeVar (ParenTypeExpr e) = getTypeVar e
+  getTypeVar (TypeApplication xs x) = getTypeVar x <> (getTypeVar =<< xs)
+  getTypeVar UnspecifiedType = []
+ 
 -- Exprに対するmap
 traverseExpr :: (Monad m) => (Expr -> m Expr) -> Expr -> m Expr
 traverseExpr f x@(Constant _) = f x
@@ -147,8 +170,6 @@ traverseTypeExpr f (TypeApplication xs a) = do
   f $ TypeApplication xs' a'
 traverseTypeExpr f x = f x
 
-data TV = TV Text deriving (Show, Eq, Ord)
-
 class TypeVarReplaceable a where
   replaceTypeVar :: TV -> TypeExpr -> a -> a
 
@@ -159,17 +180,22 @@ instance TypeVarReplaceable TypeExpr where
       impl orig@(TypeVar _) = if (fromTV from) == orig then pure to else pure orig
       impl te = pure te
 
-data TypeConstraint =
-  TypeEq{
-  _lhs_ :: TypeExpr,
-  _rhs_ :: TypeExpr
-  } deriving (Ord, Eq)
+data TypeConstraint
+  = TypeEq TypeExpr TypeExpr 
+  | TypeOfExpr [TV] Sym TypeExpr -- [TV] は型に含まれる自由型変数 let多相のためにはシンボルに紐づく型スキームを使用時に見つけてくる必要があるのでTypeOfExprも持ち回る必要がある
+  deriving (Ord, Eq)
 
 instance Show TypeConstraint where
   show (TypeEq l r) = "(TypeEq (" <> show l <> ") (" <> show r <> "))"
+  show (TypeOfExpr tvs s t) = "(TypeOfExpr " <> show tvs <> " (" <> show s <> ") (" <> show t <> "))"
 
 instance TypeVarReplaceable TypeConstraint where
   replaceTypeVar from to (TypeEq l r) = TypeEq (replaceTypeVar from to l) (replaceTypeVar from to r)
+  replaceTypeVar from to (TypeOfExpr tvs s t) = TypeOfExpr (filter (/= from) tvs) s (replaceTypeVar from to t)
+  -- tvs 内のTVはrelpace時に消すのがきれいか
+
+instance (TypeVarReplaceable a) => TypeVarReplaceable [a] where
+  replaceTypeVar from to xs = fmap (replaceTypeVar from to) xs
 
 instance TypeVarReplaceable Pattern where
   replaceTypeVar from to (ConstantPattern t v) = ConstantPattern (replaceTypeVar from to t) v
@@ -177,6 +203,7 @@ instance TypeVarReplaceable Pattern where
   replaceTypeVar from to (ListPattern t v) = ListPattern (replaceTypeVar from to t) (fmap (replaceTypeVar from to) v)
   replaceTypeVar from to (VarPattern t s) = VarPattern (replaceTypeVar from to t) s
   replaceTypeVar from to (OrPattern t l r) = undefined
+  replaceTypeVar from to (ConstrPattern _ _ _ _) = undefined
 
 instance TypeVarReplaceable LetPattern where
   replaceTypeVar from to (FuncLetPattern t f xs) = (FuncLetPattern (replaceTypeVar from to t) f (fmap (replaceTypeVar from to) <$> xs))
@@ -196,9 +223,8 @@ instance TypeVarReplaceable TExpr where
 
 toTV :: TypeExpr -> Either CompileError TV
 toTV (TypeVar s) = pure $ TV s
-toTV v = Left $ TypeError $ pack $ show v <> "is not TypeVar"
+toTV v = Left $ TypeError $ T.pack $ show v <> "is not TypeVar"
 
 fromTV :: TV -> TypeExpr
 fromTV (TV s) = TypeVar s
 
-L.makeLenses ''TypeConstraint

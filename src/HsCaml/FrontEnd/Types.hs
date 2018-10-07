@@ -6,7 +6,7 @@ import Data.Text (Text)
 
 type Name = Text
 
-data Sym = Sym {
+newtype Sym = Sym {
     __name :: Name
 } deriving(Show, Eq, Ord)
 
@@ -24,8 +24,16 @@ data TypeExpr = TypeAtom Text
               | TypeVar Text
               | TypeApplication [TypeExpr] TypeExpr
              deriving(Show, Eq, Ord)
-
 infixr ::->
+
+newtype TV = TV Text deriving (Show, Eq, Ord)
+
+data TypeScheme = TypeScheme {
+  _TypeSchemetvs_ :: [TV],
+  _TypeSchemetypeExpr_ :: TypeExpr
+}  deriving (Show,Eq,Ord)
+
+L.makeFields 'TypeScheme
 
 data CompileError = TypeError Text
                   | ParseError Text -- TODO
@@ -38,7 +46,7 @@ data DataCnstr = DataCnstr Name [TypeExpr]
 data TypeDecl = TypeDecl Name [DataCnstr]
               deriving (Show, Eq)
 
-data TypeEnv = TypeEnv [TypeDecl]
+newtype TypeEnv = TypeEnv [TypeDecl]
               deriving (Show)
 
 -- 式
@@ -85,7 +93,7 @@ data TopLevel = TopLevelExpr Expr
               | TopLevelTypeDecl TypeDecl
               deriving (Show, Eq)
 
-data Statement = Statement [TopLevel] deriving (Show, Eq)
+newtype Statement = Statement [TopLevel] deriving (Show, Eq)
 data TStatement = TStatement [TExpr] [TypeDecl] deriving (Show, Eq)
 
 data LetPattern =
@@ -134,15 +142,14 @@ data InfixOp = Mul | Plus | Minus | Div
 L.makeLenses ''Sym
 L.makePrisms ''Expr
 L.makeClassyFor "HasTypeExpr" "typeExpr_" [] ''TypeExpr
-L.makeClassyFor "HasPatType" "patType_" [] ''TypeExpr
 L.makeLenses ''LetPattern
 L.makeLenses ''Pattern
 L.makeLenses ''TExpr
 L.makeClassyPrisms ''TExpr
-instance HasPatType LetPattern where
-  patType_ = lpatType_
-instance HasPatType Pattern where
-  patType_ = mpatType_
+instance HasTypeExpr LetPattern where
+  typeExpr_ = lpatType_
+instance HasTypeExpr Pattern where
+  typeExpr_ = mpatType_
 
 instance HasTypeExpr TExpr where
     typeExpr_ :: L.Lens' TExpr TypeExpr
@@ -201,7 +208,6 @@ toExpr (TLet x y _) = Let x (toExpr y)
 toExpr (TLetRec x y _) = LetRec x (toExpr y)
 toExpr (TLetIn x y z _) = LetIn x (toExpr y) (toExpr z)
 toExpr (TLetRecIn x y z _) = LetRecIn x (toExpr y) (toExpr z)
--- toExpr (TTypeDecl x y _) = TypeDecl x y
 toExpr (TList e _) = List (fmap toExpr e)
 toExpr (TArray e _) = Array (fmap toExpr e)
 
