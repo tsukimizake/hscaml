@@ -1,5 +1,3 @@
-{-# OPTIONS -Wall #-}
-{-# LANGUAGE FlexibleContexts  #-}
 module HsCaml.TypeChecker.TypeChecker where
 
 import HsCaml.FrontEnd.Types

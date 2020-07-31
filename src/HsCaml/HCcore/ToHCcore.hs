@@ -1,9 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# OPTIONS -Wincomplete-patterns #-}
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DataKinds #-}
+
 -- HCcoreでは数式や関数適用をバラしたりコンストラクタにタグつけたりする
 module HsCaml.HCcore.ToHCcore where
 import HsCaml.FrontEnd.Types
@@ -19,6 +16,7 @@ import HsCaml.FrontEnd.OCamlType
 import Control.Monad.Reader
 import Data.Maybe
 import TextShow
+import Data.Extensible.Effect
 
 type ToHCcoreM = Eff '["gs" >: GS.GensymM, "err" >: EitherEff CompileError, "te" >: ReaderEff TypeEnv]
 

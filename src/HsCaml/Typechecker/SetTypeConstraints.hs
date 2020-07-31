@@ -1,4 +1,3 @@
-{-# OPTIONS -Wall #-}
 module HsCaml.TypeChecker.SetTypeConstraints (setTypeConstraints) where
 import HsCaml.FrontEnd.Types
 import HsCaml.TypeChecker.CollectTypeConstraints

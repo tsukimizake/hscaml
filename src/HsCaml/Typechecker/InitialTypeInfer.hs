@@ -1,34 +1,34 @@
-{-# OPTIONS -Wall #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts #-}
 module HsCaml.TypeChecker.InitialTypeInfer (initialTypeInfer) where
 
-import HsCaml.FrontEnd.Types
-import HsCaml.FrontEnd.OCamlType
 import qualified Control.Lens as L
 import Control.Lens.Operators
 import Control.Monad.State
-import Data.Text
-import Data.Monoid
-import HsCaml.TypeChecker.TypeCheckUtil
 import Data.Map as M
 import Data.Maybe
+import Data.Monoid
 import Data.Set as S
+import Data.Text
 import Debug.Trace
+import HsCaml.FrontEnd.OCamlType
+import HsCaml.FrontEnd.Types
+import HsCaml.TypeChecker.TypeCheckUtil
 import TextShow
 
 type SymName = Text
+
 type TypeName = Text
-data MangleTypeVarStat = MangleTypeVarStat{
-  _genSymNumber_ :: Int,
-  _varName_ :: Map SymName TypeName
-  }deriving(Show)
+
+data MangleTypeVarStat = MangleTypeVarStat
+  { _genSymNumber_ :: Int,
+    _varName_ :: Map SymName TypeName
+  }
+  deriving (Show)
 
 initialMangleTypeVarStat :: MangleTypeVarStat
 initialMangleTypeVarStat = MangleTypeVarStat 0 M.empty
 
 type MangleTypeVarM a = State MangleTypeVarStat a
+
 L.makeLenses ''MangleTypeVarStat
 
 -- 違うTypeExpr内の同じTypeVarは違う型であってほしいのでそこを別の名前にする。
@@ -38,7 +38,7 @@ renameTypeVarByTypeExpr = undefined
 
 -- もう見たsymなら同じTypeVarに、初めて見たsymなら新しいtypevarをつける(symはrenameTypeVariablesで同じ名なら同じブツだと保証済)
 -- TODO let f (x:'a) (y:'a) = x*y みたいのどうすんだ？ 同じ型式の中でだけ同じtypevarは同じ。ということで、全ての型式のtypevarをリネームする前処理が必要(TODO)
-genTypeVar ::Maybe SymName -> Maybe TypeName -> MangleTypeVarM TypeExpr
+genTypeVar :: Maybe SymName -> Maybe TypeName -> MangleTypeVarM TypeExpr
 genTypeVar symm Nothing = genTypeVar symm (Just "")
 genTypeVar symm (Just tname) =
   case symm of
@@ -50,17 +50,17 @@ genTypeVar symm (Just tname) =
       let lookedup = M.lookup sym vars
       if (isJust lookedup)
         then do
-        let lookedup' = fromJust lookedup
-        pure $ TypeVar lookedup'
+          let lookedup' = fromJust lookedup
+          pure $ TypeVar lookedup'
         else do
-        typename <- genNewTypeName tname
-        varName_ %= M.insert sym typename
-        pure $ TypeVar typename
+          typename <- genNewTypeName tname
+          varName_ %= M.insert sym typename
+          pure $ TypeVar typename
 
 genNewTypeName :: MonadState MangleTypeVarStat m => Text -> m Text
 genNewTypeName defaultName = do
   n <- L.use genSymNumber_
-  genSymNumber_ .= (n+1)
+  genSymNumber_ .= (n + 1)
   pure $ "_" <> defaultName <> showt n
 
 symToText :: Sym -> Text
@@ -169,6 +169,6 @@ nameTypeVarInLetPat e@(LetPatternPattern _ _) =
 nameTypeVarInLetPat (FuncLetPattern t f xs) = do
   t' <- genTypeVar (Just $ symToText f) Nothing
   xs' <- forM xs $ \(s, t) -> do
-    (LetPatternPattern _ (VarPattern t' _)) <- nameTypeVarInLetPat $ LetPatternPattern UnspecifiedType (VarPattern t s)
+    ~(LetPatternPattern _ (VarPattern t' _)) <- nameTypeVarInLetPat $ LetPatternPattern UnspecifiedType (VarPattern t s)
     pure (s, t')
   pure $ FuncLetPattern t' f xs'

@@ -35,9 +35,22 @@ dependencies:
   - monad-skeleton >= 0.1
   - text-latin1 >= 0.3
   - extensible
+  - extensible-skeleton
   - text-show
 ghc-options:
   - -Wincomplete-patterns
+  - -Wall
+default-extensions:
+  - DataKinds
+  - TypeOperators
+  - TypeApplications
+  - OverloadedStrings
+  - TemplateHaskell
+  - FlexibleContexts
+  - TypeFamilies
+  - Strict
+  - GADTs
+  - GeneralizedNewtypeDeriving
 library:
   source-dirs: src
 
