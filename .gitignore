@@ -3,3 +3,4 @@ Setup.hs
 tags
 ctags
 hscaml.cabal
+stack.yaml.lock
