@@ -1,4 +1,5 @@
 {
+{-# LANGUAGE NoStrict, NoStrictData #-}
 module HsCaml.Parser.Parser (parseStatement, parseExpr, parseTopLevel) where
 import HsCaml.FrontEnd.Types as Types
 import HsCaml.Parser.Token

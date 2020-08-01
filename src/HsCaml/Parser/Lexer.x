@@ -1,5 +1,5 @@
 {
-{-# LANGUAGE NoMonomorphismRestriction, CPP, OverloadedStrings, RankNTypes #-}
+{-# LANGUAGE NoMonomorphismRestriction, CPP, OverloadedStrings, RankNTypes, NoStrict #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds          #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures    #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches        #-}
