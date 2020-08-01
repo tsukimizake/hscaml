@@ -196,7 +196,7 @@ PatternList :: {[Pattern]}
   | Pattern PatternList {$1 : $2}
 
 LetPattern :: {LetPattern}
-  : Pattern {LetPatternPattern UnspecifiedType $1}
+  : Pattern {LetPattern UnspecifiedType $1}
   | downvar SymList {FuncLetPattern UnspecifiedType (Sym $1) (zip $2 (repeat UnspecifiedType))}
 
 

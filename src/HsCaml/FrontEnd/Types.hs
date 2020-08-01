@@ -93,7 +93,7 @@ data LetPattern =
   _lpatType_ :: TypeExpr,
   _funcsym_ :: Sym,
   _args_ :: [(Sym, TypeExpr)]
-}| LetPatternPattern{
+}| LetPattern{
   _lpatType_ :: TypeExpr,
   _pat_ :: Pattern
   } deriving (Show, Eq, Ord)

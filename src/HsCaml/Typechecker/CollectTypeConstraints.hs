@@ -32,7 +32,7 @@ putTypeConstraint tc =
 -- パターンがVarPattern/FuncLetPatternのときはそのシンボルの型を返す
 -- rtypeはパターンマッチの右辺の型。フォースが共にあらんことを。
 collectFromLetPattern :: LetPattern -> TypeExpr -> CollectTypeConstraintsM (Maybe TypeConstraint)
-collectFromLetPattern (LetPatternPattern t mpat) rtype = collectFromMatchPattern mpat rtype
+collectFromLetPattern (LetPattern t mpat) rtype = collectFromMatchPattern mpat rtype
 collectFromLetPattern (FuncLetPattern t f args) rtype = do
   let functype = buildFuncType rtype (fmap snd args)
   putTypeConstraint $ TypeEq functype t

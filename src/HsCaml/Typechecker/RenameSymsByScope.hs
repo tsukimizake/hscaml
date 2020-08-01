@@ -63,22 +63,22 @@ renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.in
             0 -> E.throwEff (Proxy @"err") . SemanticsError $ T.intercalate " " ["Symbol", s, "couldn't be found"]
             _ -> pure $ V (head xs)
     impl x@(IntC _) = pure $ x
-    impl (Let (LetPatternPattern t1 (VarPattern t (Sym s))) e) = do
+    impl (Let (LetPattern t1 (VarPattern t (Sym s))) e) = do
       e' <- impl e
       s' <- pushAndRenameSym s
       popRenameStack s
-      pure (Let (LetPatternPattern t1 (VarPattern t (Sym s'))) e')
-    impl (LetRec (LetPatternPattern t1 (VarPattern t (Sym s))) e) = do
+      pure (Let (LetPattern t1 (VarPattern t (Sym s'))) e')
+    impl (LetRec (LetPattern t1 (VarPattern t (Sym s))) e) = do
       s' <- pushAndRenameSym s
       e' <- impl e
       popRenameStack s
-      pure (LetRec (LetPatternPattern t1 (VarPattern t (Sym s'))) e')
-    impl (LetIn (LetPatternPattern t1 (VarPattern t (Sym s))) e1 e2) = do
+      pure (LetRec (LetPattern t1 (VarPattern t (Sym s'))) e')
+    impl (LetIn (LetPattern t1 (VarPattern t (Sym s))) e1 e2) = do
       e1' <- impl e1
       s' <- pushAndRenameSym s
       e2' <- impl e2
       popRenameStack s
-      pure (LetIn (LetPatternPattern t1 (VarPattern t (Sym s'))) e1' e2')
+      pure (LetIn (LetPattern t1 (VarPattern t (Sym s'))) e1' e2')
     impl (Let (FuncLetPattern t (Sym s) xs) e) = do
       s' <- pushAndRenameSym s
       args' <- forM xs $ \(s, t) -> do
@@ -113,12 +113,12 @@ renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.in
         s' <- popRenameStack . unwrapSym $ s
         pure (s', t)
       pure $ LetIn (FuncLetPattern t (Sym s') (args')) e1' e2'
-    impl (LetRecIn (LetPatternPattern t1 (VarPattern t (Sym s))) e1 e2) = do
+    impl (LetRecIn (LetPattern t1 (VarPattern t (Sym s))) e1 e2) = do
       s' <- pushAndRenameSym s
       e1' <- impl e1
       e2' <- impl e2
       popRenameStack s
-      pure (LetRecIn (LetPatternPattern t1 (VarPattern t (Sym s'))) e1' e2')
+      pure (LetRecIn (LetPattern t1 (VarPattern t (Sym s'))) e1' e2')
     impl (LetRecIn (FuncLetPattern t (Sym s) xs) e1 e2) = do
       s' <- pushAndRenameSym s
       args' <- forM xs $ \(s, t) -> do
@@ -146,9 +146,9 @@ renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.in
     impl e@(While _ _) = traverseExpr impl e
     impl e@(IfThenElse _ _ _) = traverseExpr impl e
     impl e@(FunApply _ _) = traverseExpr impl e
-    impl e@(Let (LetPatternPattern _ _) _) = traverseExpr impl e
-    impl e@(LetIn (LetPatternPattern _ _) _ _) = traverseExpr impl e
-    impl e@(LetRec (LetPatternPattern _ _) _) = traverseExpr impl e
-    impl e@(LetRecIn (LetPatternPattern _ _) _ _) = traverseExpr impl e
+    impl e@(Let (LetPattern _ _) _) = traverseExpr impl e
+    impl e@(LetIn (LetPattern _ _) _ _) = traverseExpr impl e
+    impl e@(LetRec (LetPattern _ _) _) = traverseExpr impl e
+    impl e@(LetRecIn (LetPattern _ _) _ _) = traverseExpr impl e
     impl e@(Types.List _) = traverseExpr impl e
     impl e@(Array _) = traverseExpr impl e

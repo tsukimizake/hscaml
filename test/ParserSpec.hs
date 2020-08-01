@@ -28,13 +28,13 @@ parserSpec = do
         testExprParser "x * f y -1" ((V "x" :* (FunApply (V "f") [V "y"])) :- (IntC 1))
         testExprParser "x - f y *1" (V "x" :- ((FunApply (V "f") [V "y"]) :* (IntC 1)))
 
-        testExprParser "let eu = 4" (Let (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType "eu")) (Constant (IntVal 4)))
-        testExprParser "let (eu:'a) = 4" (Let (LetPatternPattern UnspecifiedType (ParenPattern (TypeVar "'a") (VarPattern (TypeVar "'a") "eu"))) (IntC 4))
+        testExprParser "let eu = 4" (Let (LetPattern UnspecifiedType (VarPattern UnspecifiedType "eu")) (Constant (IntVal 4)))
+        testExprParser "let (eu:'a) = 4" (Let (LetPattern UnspecifiedType (ParenPattern (TypeVar "'a") (VarPattern (TypeVar "'a") "eu"))) (IntC 4))
         testExprParser "let rec f x = x*x*x" (LetRec (FuncLetPattern UnspecifiedType "f" [("x", UnspecifiedType)]) ((V "x" :* V "x") :* V "x"))
-        testExprParser "let (eu:int) = 4" (Let (LetPatternPattern UnspecifiedType (ParenPattern ocamlInt (VarPattern ocamlInt "eu"))) (Constant (IntVal 4)))
-        testExprParser "let rec eu = 4" (LetRec (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType "eu")) (Constant (IntVal 4)))
+        testExprParser "let (eu:int) = 4" (Let (LetPattern UnspecifiedType (ParenPattern ocamlInt (VarPattern ocamlInt "eu"))) (Constant (IntVal 4)))
+        testExprParser "let rec eu = 4" (LetRec (LetPattern UnspecifiedType (VarPattern UnspecifiedType "eu")) (Constant (IntVal 4)))
         testExprParser "let rec (eu : int  ) = 4"
-            (LetRec (LetPatternPattern UnspecifiedType (ParenPattern ocamlInt (VarPattern ocamlInt "eu"))) (IntC 4))
+            (LetRec (LetPattern UnspecifiedType (ParenPattern ocamlInt (VarPattern ocamlInt "eu"))) (IntC 4))
         testExprParser "if x then y else z"
             (IfThenElse (V "x") (V "y") (V "z"))
         testExprParser "let rec fib x = if x<=1 then 1 else fib (x-1)+fib(x-2)"
@@ -71,7 +71,7 @@ parserSpec = do
                        DataCnstr "Cons" [(TypeVar "'a"), TypeApplication [(TypeVar "'a")] (TypeAtom "list")]]
                       )
         testExprParser "let main = print_int 42"
-            (Let (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "main"))) (FunApply (V "print_int") [(IntC 42)]))
+            (Let (LetPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "main"))) (FunApply (V "print_int") [(IntC 42)]))
         testExprParser "match x with |1 -> true |2 ->false"
             (Match (V "x") [(ConstantPattern UnspecifiedType (IntVal 1), (Constant(BoolVal True))),
                             (ConstantPattern UnspecifiedType (IntVal 2), (Constant(BoolVal False)))])

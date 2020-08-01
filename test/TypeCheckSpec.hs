@@ -50,21 +50,21 @@ typeCheckSpec :: Spec
 typeCheckSpec = do
   describe "renameSymsByScope" $ do
     testRSBS "let x = 1 in let x = 2 in let x = 3 in x" (LetIn
-       (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_0")))
+       (LetPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_0")))
        (IntC 1)
-       (LetIn (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_1")))
+       (LetIn (LetPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_1")))
          (IntC 2)
-         (LetIn (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_2")))
+         (LetIn (LetPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_2")))
            (IntC 3)
            (V "_x_gen_2"))))
     testRSBS "let rec a = 0 in if a=0 then 2 else 3"
       (LetRecIn
-       (LetPatternPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_a_gen_0")))
+       (LetPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "_a_gen_0")))
        (Constant (IntVal 0))
        (IfThenElse (InfixOpExpr (Var (Sym "_a_gen_0")) (Compare Equal) (Constant (IntVal 0))) (Constant (IntVal 2)) (Constant (IntVal 3))))
     testRSBS "let x = 0 in match x with | 42 -> x"
       (LetIn
-      (LetPatternPattern
+      (LetPattern
        UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_0")))
       (Constant (IntVal 0))
       (Match
@@ -73,7 +73,7 @@ typeCheckSpec = do
     testRSBS
       "let x = 0 in match x with | 42 -> true"
       (LetIn
-      (LetPatternPattern
+      (LetPattern
        UnspecifiedType (VarPattern UnspecifiedType (Sym "_x_gen_0")))
       (Constant (IntVal 0))
       (Match
@@ -126,10 +126,10 @@ typeCheckSpec = do
         (ocamlInt ::-> ocamlInt ::-> ocamlInt))
     testTypeCheckExpr "let a = 0 in let b  = a in if a =b then 42 else 3"
       (TLetIn
-       (LetPatternPattern ocamlInt (VarPattern ocamlInt (Sym "_a_gen_0")))
+       (LetPattern ocamlInt (VarPattern ocamlInt (Sym "_a_gen_0")))
        (TIntC 0)
        (TLetIn
-        (LetPatternPattern ocamlInt (VarPattern ocamlInt (Sym "_b_gen_0")))
+        (LetPattern ocamlInt (VarPattern ocamlInt (Sym "_b_gen_0")))
         (TVar (Sym "_a_gen_0") ocamlInt)
         (TIfThenElse
          ((TVar (Sym "_a_gen_0") ocamlInt) :==: (TVar (Sym "_b_gen_0") ocamlInt))

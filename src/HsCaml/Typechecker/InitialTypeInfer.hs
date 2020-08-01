@@ -161,14 +161,14 @@ initialTypeInferStmt (Statement toplevels) = do
     impltypedecls (TopLevelExpr _) = pure Nothing
 
 nameTypeVarInLetPat :: LetPattern -> MangleTypeVarM LetPattern
-nameTypeVarInLetPat (LetPatternPattern t1 (VarPattern t s)) = do
+nameTypeVarInLetPat (LetPattern t1 (VarPattern t s)) = do
   t' <- genTypeVar (Just $ symToText s) Nothing
-  pure $ LetPatternPattern t' (VarPattern t' s)
-nameTypeVarInLetPat e@(LetPatternPattern _ _) =
+  pure $ LetPattern t' (VarPattern t' s)
+nameTypeVarInLetPat e@(LetPattern _ _) =
   pure e
 nameTypeVarInLetPat (FuncLetPattern t f xs) = do
   t' <- genTypeVar (Just $ symToText f) Nothing
   xs' <- forM xs $ \(s, t) -> do
-    ~(LetPatternPattern _ (VarPattern t' _)) <- nameTypeVarInLetPat $ LetPatternPattern UnspecifiedType (VarPattern t s)
+    ~(LetPattern _ (VarPattern t' _)) <- nameTypeVarInLetPat $ LetPattern UnspecifiedType (VarPattern t s)
     pure (s, t')
   pure $ FuncLetPattern t' f xs'

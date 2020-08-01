@@ -21,7 +21,7 @@ hcCoreSpec = describe "toHCcore" $ do
   testToHCcore "let a = 1"
     (CMultiExpr
      [CLetRec
-      (LetPatternPattern
+      (LetPattern
         (TypeAtom "int") (VarPattern (TypeAtom "int") (Sym "_a_gen_0")))
        (CValue (CLConst (IntVal 1) (TypeAtom "int")) (TypeAtom "int")) (TypeAtom "()")] (TypeAtom "()")
      ) (TypeEnv [])
