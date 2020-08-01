@@ -1,5 +1,4 @@
 {-# OPTIONS -Wall #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module HsCaml.TypeChecker.CheckTypeCheckIsFinished (checkTypeCheckIsFinished) where
 
@@ -12,7 +11,6 @@ checkTypeCheckIsFinished :: TExpr -> Either CompileError TExpr
 checkTypeCheckIsFinished = traverseTExpr impl
   where
     isCorrectlyInferedType :: TypeExpr -> Bool
-    isCorrectlyInferedType (TypeVar _) = False
     isCorrectlyInferedType UnspecifiedType = False
     isCorrectlyInferedType _ = True
     impl :: TExpr -> Either CompileError TExpr
