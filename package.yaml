@@ -37,6 +37,7 @@ dependencies:
   - extensible
   - extensible-skeleton
   - text-show
+  - deriving-show-simple
 ghc-options:
   - -Wincomplete-patterns
   - -Wall

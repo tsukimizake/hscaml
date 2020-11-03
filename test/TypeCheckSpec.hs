@@ -11,20 +11,11 @@ import HsCaml.TypeChecker.RenameSymsByScope
 import Control.Monad.State
 import Debug.Trace
 import Data.Set as S
-import HsCaml.TypeChecker.CollectTypeConstraints
-import HsCaml.TypeChecker.InitialTypeInfer
 import HsCaml.TypeChecker.TypeChecker
 
 testRSBS :: String -> Expr -> Spec
 testRSBS src ast = it src $ do
   let res = renameSymsByScope . parseExpr $ src
-  case res of
-    Left err -> error $ show err
-    Right res' -> res' `shouldBe` ast
-
-testInitialTypeInfer :: String -> TExpr -> Spec
-testInitialTypeInfer src ast = it src $ do
-  let res = fmap initialTypeInfer . renameSymsByScope . parseExpr $ src
   case res of
     Left err -> error $ show err
     Right res' -> res' `shouldBe` ast
@@ -35,16 +26,6 @@ testTypeCheckExpr src ast = it src $ do
   case res of
     Left err -> error $ show err
     Right res' -> res' `shouldBe` ast
-
-testCollectConstraints :: String -> [TypeConstraint] -> Spec
-testCollectConstraints s cs = it s $ do
-    let constraints = do
-          expr <- renameSymsByScope . parseExpr $ s
-          let texpr = initialTypeInfer expr
-          pure $ collectTypeConstraints texpr
-    case constraints of
-      Left err -> error $ show err
-      Right constraints -> constraints `shouldBe` S.fromList cs
 
 typeCheckSpec :: Spec
 typeCheckSpec = do
@@ -79,42 +60,6 @@ typeCheckSpec = do
       (Match
        (Var (Sym "_x_gen_0"))
        [(ConstantPattern UnspecifiedType (IntVal 42), (Constant (BoolVal True)))]))
-  describe "initialTypeInfer" $ do
-    testInitialTypeInfer "let f x y = x*y in f"
-      (TLetIn
-        (FuncLetPattern (TypeVar "_0") (Sym "_f_gen_0") [(Sym "_x_gen_0", TypeVar "_1"),(Sym "_y_gen_0", TypeVar "_2")])
-        (TInfixOpExpr (TVar (Sym "_x_gen_0") (TypeVar "_1")) Mul (TVar (Sym "_y_gen_0") (TypeVar "_2")) (TypeVar "_3"))
-        (TVar (Sym "_f_gen_0") (TypeVar "_0")) (TypeVar "_4"))
-  describe "collectTypeInfo" $ do
-    testCollectConstraints "let f x y = x*y in f"
-      [
-        TypeEq (TypeVar "_1" ::-> TypeVar "_2" ::-> TypeVar "_3") (TypeVar"_0")
-      , TypeEq (TypeVar "_0") (TypeVar "_4")
-      , TypeEq (TypeVar "_1") ocamlInt
-      , TypeEq (TypeVar "_2") ocamlInt
-      , TypeEq (TypeVar "_3") ocamlInt
-      ]
-
-    testCollectConstraints "let rec f g x = f (g x) in g"
-      [
-        TypeEq(TypeVar "_4" ::-> TypeVar "_5") (TypeVar "_0")
-      , TypeEq(TypeVar "_1" ::-> TypeVar "_2" ::-> TypeVar "_5") (TypeVar "_0")
-      , TypeEq (TypeVar "_3") (TypeVar "_4")
-      , TypeEq (TypeVar "_2" ::-> TypeVar "_3") (TypeVar "_1")
-      , TypeEq (TypeVar "_1") (TypeVar "_6")
-      ]
-  testCollectConstraints "let rec f x = if x = 0 then 1 else x * f (x-1)"
-    [
-     TypeEq {_lhs_ = TypeAtom "int", _rhs_ = TypeVar "_6"},
-     TypeEq {_lhs_ = TypeAtom "int", _rhs_ = TypeVar "_7"},
-     TypeEq {_lhs_ = TypeVar "_1" ::-> TypeVar "_7", _rhs_ = TypeVar "_0"},
-     TypeEq {_lhs_ = TypeVar "_4" ::-> TypeVar "_5", _rhs_ = TypeVar "_0"},
-     TypeEq {_lhs_ = TypeVar "_1", _rhs_ = TypeAtom "int"},
-     TypeEq {_lhs_ = TypeVar "_2", _rhs_ = TypeAtom "bool"},
-     TypeEq {_lhs_ = TypeVar "_3", _rhs_ = TypeAtom "int"},
-     TypeEq {_lhs_ = TypeVar "_3", _rhs_ = TypeVar "_4"},
-     TypeEq {_lhs_ = TypeVar "_5", _rhs_ = TypeAtom "int"},
-     TypeEq {_lhs_ = TypeVar "_6", _rhs_ = TypeAtom "int"}]
   describe "typecheck" $ do
     testTypeCheckExpr "let f x y = x*y in f"
       (TLetIn

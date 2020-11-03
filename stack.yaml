@@ -43,6 +43,7 @@ extra-deps:
   - extensible-0.8
   - membership-0
   - extensible-skeleton-0
+  - deriving-show-simple-0
 # Override default flag values for local packages and extra-deps
 flags:
   llvm-hs:
