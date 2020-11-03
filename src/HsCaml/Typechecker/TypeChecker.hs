@@ -2,15 +2,12 @@ module HsCaml.TypeChecker.TypeChecker where
 
 import HsCaml.FrontEnd.Types
 import HsCaml.TypeChecker.RenameSymsByScope
---import HsCaml.TypeChecker.InitialTypeInfer
---import HsCaml.TypeChecker.CollectTypeConstraints
---import HsCaml.TypeChecker.Unify
---import HsCaml.TypeChecker.SetTypeConstraints
 import HsCaml.TypeChecker.CheckFinished
 
 typeCheck :: Expr -> Either CompileError TExpr
 typeCheck e = do
   e' <- renameSymsByScope e
+
   undefined
   --let te' = initialTypeInfer e'
   ---- traceM $ show $ te'
