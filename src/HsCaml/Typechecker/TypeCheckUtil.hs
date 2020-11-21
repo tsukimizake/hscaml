@@ -1,63 +1,68 @@
 module HsCaml.TypeChecker.TypeCheckUtil where
-import HsCaml.FrontEnd.Types as Types
-import Data.Text
+
+import Control.Lens as L
 import Data.Functor.Identity
 import Data.Monoid
-import Control.Lens as L
+import Data.Text
+import HsCaml.FrontEnd.Types as Types
 
 -- Exprに対するmap
 traverseExpr :: (Monad m) => (Expr -> m Expr) -> Expr -> m Expr
 traverseExpr f x@(Constant _) = f x
 traverseExpr f x@(Var _) = f x
 traverseExpr f (Paren e) = do
-    e'  <- traverseExpr f e
-    pure $ Paren e'
+  e' <- traverseExpr f e
+  pure $ Paren e'
 traverseExpr f (InfixOpExpr e iop g) = do
-    e'  <- traverseExpr f e
-    g'  <- traverseExpr f g
-    pure $ InfixOpExpr e' iop g'
+  e' <- traverseExpr f e
+  g' <- traverseExpr f g
+  pure $ InfixOpExpr e' iop g'
 traverseExpr f (BegEnd e) = do
-    e'  <- traverseExpr f e
-    pure $ BegEnd e'
+  e' <- traverseExpr f e
+  pure $ BegEnd e'
 traverseExpr f (MultiExpr e) = do
-    e' <- mapM f e
-    pure $ MultiExpr e'
+  e' <- mapM f e
+  pure $ MultiExpr e'
 traverseExpr f (Constr e) = do
-    e'  <- traverseExpr f e
-    pure $ Constr e'
+  e' <- traverseExpr f e
+  pure $ Constr e'
 traverseExpr f (IfThenElse e1 e2 e3) = do
-    e1'  <- traverseExpr f e1
-    e2'  <- traverseExpr f e2
-    e3'  <- traverseExpr f e3
-    pure $ IfThenElse e1' e2' e3'
+  e1' <- traverseExpr f e1
+  e2' <- traverseExpr f e2
+  e3' <- traverseExpr f e3
+  pure $ IfThenElse e1' e2' e3'
 traverseExpr f (Match e1 e2) = do
-    e1'  <- traverseExpr f e1
-    e2' <- mapM (\(x, y) -> do
-                    y'  <- traverseExpr f y
-                    pure (x, y')) e2
-    pure $ Match e1' e2'
+  e1' <- traverseExpr f e1
+  e2' <-
+    mapM
+      ( \(x, y) -> do
+          y' <- traverseExpr f y
+          pure (x, y')
+      )
+      e2
+  pure $ Match e1' e2'
 traverseExpr f (While e1 e2) = do
-    e1'  <- traverseExpr f e1
-    e2'  <- traverseExpr f e2
-    pure $ While e1' e2'
+  e1' <- traverseExpr f e1
+  e2' <- traverseExpr f e2
+  pure $ While e1' e2'
 traverseExpr f (FunApply e1 e2) = do
-    e1'  <- traverseExpr f e1
-    e2' <- mapM f e2
-    pure $ FunApply e1' e2'
-traverseExpr f (Let e1 e2) =  do
-    e2'  <- traverseExpr f e2
-    pure $ Let e1 e2'
-traverseExpr f (LetRec e1 e2) =  do
-    e2'  <- traverseExpr f e2
-    pure $ LetRec e1 e2'
+  e1' <- traverseExpr f e1
+  e2' <- mapM f e2
+  pure $ FunApply e1' e2'
+traverseExpr f (Let e1 e2) = do
+  e2' <- traverseExpr f e2
+  pure $ Let e1 e2'
+traverseExpr f (LetRec e1 e2) = do
+  e2' <- traverseExpr f e2
+  pure $ LetRec e1 e2'
 traverseExpr f (LetIn e1 e2 e3) = do
-    e2'  <- traverseExpr f e2
-    e3'  <- traverseExpr f e3
-    pure $ LetIn e1 e2' e3'
+  e2' <- traverseExpr f e2
+  e3' <- traverseExpr f e3
+  pure $ LetIn e1 e2' e3'
 traverseExpr f (LetRecIn e1 e2 e3) = do
-    e2'  <- traverseExpr f e2
-    e3'  <- traverseExpr f e3
-    pure $ LetRecIn e1 e2' e3'
+  e2' <- traverseExpr f e2
+  e3' <- traverseExpr f e3
+  pure $ LetRecIn e1 e2' e3'
 traverseExpr f (Types.List xs) = do
   xs' <- mapM (traverseExpr f) xs
   pure $ Types.List xs'
@@ -69,54 +74,58 @@ traverseTExpr :: (Monad m) => (TExpr -> m TExpr) -> TExpr -> m TExpr
 traverseTExpr f x@(TConstant _ _) = f x
 traverseTExpr f x@(TVar _ _) = f x
 traverseTExpr f (TParen e t) = do
-    e'  <- traverseTExpr f e
-    f $ TParen e' t
+  e' <- traverseTExpr f e
+  f $ TParen e' t
 traverseTExpr f (TInfixOpExpr e iop g t) = do
-    e'  <- traverseTExpr f e
-    g'  <- traverseTExpr f g
-    f $ TInfixOpExpr e' iop g' t
+  e' <- traverseTExpr f e
+  g' <- traverseTExpr f g
+  f $ TInfixOpExpr e' iop g' t
 traverseTExpr f (TBegEnd e t) = do
-    e'  <- traverseTExpr f e
-    f $ TBegEnd e' t
+  e' <- traverseTExpr f e
+  f $ TBegEnd e' t
 traverseTExpr f (TMultiExpr e t) = do
-    e' <- mapM f e
-    f $ TMultiExpr e' t
+  e' <- mapM f e
+  f $ TMultiExpr e' t
 traverseTExpr f (TConstr e t) = do
-    e'  <- traverseTExpr f e
-    f $ TConstr e' t
+  e' <- traverseTExpr f e
+  f $ TConstr e' t
 traverseTExpr f (TIfThenElse e1 e2 e3 t) = do
-    e1'  <- traverseTExpr f e1
-    e2'  <- traverseTExpr f e2
-    e3'  <- traverseTExpr f e3
-    f $ TIfThenElse e1' e2' e3' t
+  e1' <- traverseTExpr f e1
+  e2' <- traverseTExpr f e2
+  e3' <- traverseTExpr f e3
+  f $ TIfThenElse e1' e2' e3' t
 traverseTExpr f (TMatch e1 e2 t) = do
-    e1'  <- traverseTExpr f e1
-    e2' <- mapM (\(x, y) -> do
-                     y'  <- traverseTExpr f y
-                     pure (x, y')) e2
-    f $ TMatch e1' e2' t
+  e1' <- traverseTExpr f e1
+  e2' <-
+    mapM
+      ( \(x, y) -> do
+          y' <- traverseTExpr f y
+          pure (x, y')
+      )
+      e2
+  f $ TMatch e1' e2' t
 traverseTExpr f (TWhile e1 e2 t) = do
-    e1'  <- traverseTExpr f e1
-    e2'  <- traverseTExpr f e2
-    f $ TWhile e1' e2' t
+  e1' <- traverseTExpr f e1
+  e2' <- traverseTExpr f e2
+  f $ TWhile e1' e2' t
 traverseTExpr f (TFunApply e1 e2 t) = do
-    e1' <- traverseTExpr f e1
-    e2' <- mapM f e2
-    f $ TFunApply e1' e2' t
-traverseTExpr f (TLet e1 e2 t) =  do
-    e2'  <- traverseTExpr f e2
-    f $ TLet e1 e2' t
-traverseTExpr f (TLetRec e1 e2 t) =  do
-    e2'  <- traverseTExpr f e2
-    f $ TLetRec e1 e2' t
+  e1' <- traverseTExpr f e1
+  e2' <- mapM f e2
+  f $ TFunApply e1' e2' t
+traverseTExpr f (TLet e1 e2 t) = do
+  e2' <- traverseTExpr f e2
+  f $ TLet e1 e2' t
+traverseTExpr f (TLetRec e1 e2 t) = do
+  e2' <- traverseTExpr f e2
+  f $ TLetRec e1 e2' t
 traverseTExpr f (TLetIn e1 e2 e3 t) = do
-    e2'  <- traverseTExpr f e2
-    e3'  <- traverseTExpr f e3
-    f $ TLetIn e1 e2' e3' t
+  e2' <- traverseTExpr f e2
+  e3' <- traverseTExpr f e3
+  f $ TLetIn e1 e2' e3' t
 traverseTExpr f (TLetRecIn e1 e2 e3 t) = do
-    e2'  <- traverseTExpr f e2
-    e3'  <- traverseTExpr f e3
-    f $ TLetRecIn e1 e2' e3' t
+  e2' <- traverseTExpr f e2
+  e3' <- traverseTExpr f e3
+  f $ TLetRecIn e1 e2' e3' t
 traverseTExpr f (Types.TList xs t) = do
   xs' <- mapM (traverseTExpr f) xs
   f $ Types.TList xs' t
@@ -156,11 +165,11 @@ instance TypeVarReplaceable TypeExpr where
       impl orig@(TypeVar _) = if (fromTV from) == orig then pure to else pure orig
       impl te = pure te
 
-data TypeConstraint =
-  TypeEq{
-  _lhs_ :: TypeExpr,
-  _rhs_ :: TypeExpr
-  } deriving (Ord, Eq)
+data TypeConstraint = TypeEq
+  { _lhs_ :: TypeExpr,
+    _rhs_ :: TypeExpr
+  }
+  deriving (Ord, Eq)
 
 instance Show TypeConstraint where
   show (TypeEq l r) = "(TypeEq (" <> show l <> ") (" <> show r <> "))"
@@ -182,7 +191,7 @@ instance TypeVarReplaceable LetPattern where
 instance TypeVarReplaceable TExpr where
   replaceTypeVar from@(TV fs) to orig = runIdentity $ (traverseTExpr $ pure . impl) orig
     where
-      replaceInPatterns (TMatch a xs b) = TMatch a (fmap (\(p, e)-> (replaceTypeVar from to p, e)) xs) b
+      replaceInPatterns (TMatch a xs b) = TMatch a (fmap (\(p, e) -> (replaceTypeVar from to p, e)) xs) b
       replaceInPatterns (TLet p a b) = TLet (replaceTypeVar from to p) a b
       replaceInPatterns (TLetIn p a b c) = TLetIn (replaceTypeVar from to p) a b c
       replaceInPatterns (TLetRec p a b) = TLetRec (replaceTypeVar from to p) a b
