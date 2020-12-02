@@ -1,6 +1,5 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -8,24 +7,25 @@
 
 module HsCaml.FrontEnd.Types where
 
-import GHC.Generics
 import qualified Control.Lens as L
 import Data.Text (Text)
 import Deriving.Show.Simple
+import GHC.Generics
 
 type Name = Text
 
-data Sym = Sym
+newtype Sym = Sym
   { __name :: Name
   }
   deriving (Eq, Ord, Generic)
   deriving (Show) via (WrapSimple Sym)
 
-
 data Value
   = IntVal Int
   | BoolVal Bool
   deriving (Show, Eq, Ord)
+
+type Level = Int
 
 -- 型式
 data TypeExpr
@@ -35,7 +35,8 @@ data TypeExpr
   | TypeExpr ::+ TypeExpr
   | ParenTypeExpr TypeExpr
   | UnspecifiedType
-  | TypeVar Text
+  | TypeVar Text Level
+  | QVar Text -- forall qualified type var
   | TypeApplication [TypeExpr] TypeExpr
   deriving (Show, Eq, Ord)
 
@@ -53,7 +54,7 @@ data DataCnstr = DataCnstr Name [TypeExpr]
 data TypeDecl = TypeDecl Name [DataCnstr]
   deriving (Show, Eq)
 
-data TypeEnv = TypeEnv [TypeDecl]
+newtype TypeEnv = TypeEnv [TypeDecl]
   deriving (Show)
 
 -- 式
@@ -103,7 +104,7 @@ data TopLevel
   | TopLevelTypeDecl TypeDecl
   deriving (Show, Eq)
 
-data Statement = Statement [TopLevel] deriving (Show, Eq)
+newtype Statement = Statement [TopLevel] deriving (Show, Eq)
 
 data TStatement = TStatement [TExpr] [TypeDecl] deriving (Show, Eq)
 

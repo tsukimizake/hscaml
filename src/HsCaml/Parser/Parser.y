@@ -147,8 +147,8 @@ TypeDecl
   | "type" TypeArgs downvar "=" DataCnstrDecls  {TypeDecl $3 $5}
 
 TypeArgs :: {[TypeExpr]}
-  : qvar {[TypeVar $1]}
-  | qvar TypeArgs {TypeVar $1 : $2}
+  : qvar {[TypeVar $1 0]}
+  | qvar TypeArgs {TypeVar $1 0 : $2}
 
 TypeApplication :: {TypeExpr}
 TypeApplication
@@ -170,7 +170,7 @@ DataCnstrArgs
 DataCnstrArg :: {TypeExpr}
 DataCnstrArg
   : downvar {TypeAtom $1}
-  | qvar {TypeVar $1}
+  | qvar {TypeVar $1 0}
   | TypeApplication {$1}
   | DataCnstrArg "->" DataCnstrArg {$1 ::-> $3}
 
@@ -203,7 +203,7 @@ LetPattern :: {LetPattern}
 
 TypeExpr :: {TypeExpr}
   : downvar {TypeAtom $1}
-  | qvar {TypeVar $1}
+  | qvar {TypeVar $1 0}
   | TypeExpr "->" TypeExpr {$1 ::-> $3}
   | "(" TypeExpr ")" {ParenTypeExpr $2}
   | TypeExpr "*" TypeExpr {$1 ::* $3}

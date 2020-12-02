@@ -5,8 +5,6 @@ import qualified Data.Map as M
 import qualified Data.Maybe as Maybe
 import HsCaml.FrontEnd.Types
 
-type Level = Int
-
 type UF = M.Map TypeExpr TypeExpr
 
 data TypecheckState = TypecheckState
@@ -52,11 +50,11 @@ union l r = do
   lp <- find l
   rp <- find r
   case (lp, rp) of
-    (lv@(TypeVar _), rv@(TypeVar _)) ->
+    (lv@(TypeVar _ _), rv@(TypeVar _ _)) ->
       setUF $ M.insert lv rv uf
-    (lt, rv@(TypeVar _)) ->
+    (lt, rv@(TypeVar _ _)) ->
       setUF $ M.insert rv lt uf
-    (lv@(TypeVar _), rt) ->
+    (lv@(TypeVar _ _), rt) ->
       setUF $ M.insert lv rt uf
     (_, _) ->
       error "それっておかしくねえ？"

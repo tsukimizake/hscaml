@@ -153,7 +153,7 @@ traverseTypeExpr f (TypeApplication xs a) = do
   f $ TypeApplication xs' a'
 traverseTypeExpr f x = f x
 
-data TV = TV Text deriving (Show, Eq, Ord)
+newtype TV = TV Text deriving (Show, Eq, Ord)
 
 class TypeVarReplaceable a where
   replaceTypeVar :: TV -> TypeExpr -> a -> a
@@ -162,7 +162,7 @@ instance TypeVarReplaceable TypeExpr where
   replaceTypeVar from to orig = runIdentity $ traverseTypeExpr impl orig
     where
       impl :: TypeExpr -> Identity TypeExpr
-      impl orig@(TypeVar _) = if (fromTV from) == orig then pure to else pure orig
+      impl orig@(TypeVar _ l) = if fromTV from l == orig then pure to else pure orig
       impl te = pure te
 
 data TypeConstraint = TypeEq
@@ -201,10 +201,10 @@ instance TypeVarReplaceable TExpr where
       impl e = replaceInPatterns $ e & typeExpr_ .~ (replaceTypeVar from to (e ^. typeExpr_))
 
 toTV :: TypeExpr -> Either CompileError TV
-toTV (TypeVar s) = pure $ TV s
+toTV (TypeVar s _) = pure $ TV s
 toTV v = Left $ TypeError $ pack $ show v <> "is not TypeVar"
 
-fromTV :: TV -> TypeExpr
+fromTV :: TV -> Types.Level -> TypeExpr
 fromTV (TV s) = TypeVar s
 
 L.makeLenses ''TypeConstraint
