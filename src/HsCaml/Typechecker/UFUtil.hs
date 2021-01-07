@@ -1,8 +1,12 @@
 module HsCaml.TypeChecker.UFUtil (TypecheckM (..), union, find, enterLevel, leaveLevel, currentLevel) where
 
 import Control.Monad.State
+import qualified Data.Extensible as E
+import qualified Data.Extensible.Effect as E
 import qualified Data.Map as M
 import qualified Data.Maybe as Maybe
+import Data.Proxy
+import qualified HsCaml.Common.Gensym as GS
 import HsCaml.FrontEnd.Types
 
 type UF = M.Map TypeExpr TypeExpr
@@ -12,6 +16,8 @@ data TypecheckState = TypecheckState
     level_ :: Level
   }
 
+type TypecheckEff = E.Eff '["gs" E.>: GS.GensymM, "err" E.>: E.EitherEff CompileError, "uf" E.>: TypecheckM]
+
 newtype TypecheckM a = TypecheckM
   { runTypecheckM :: State TypecheckState a
   }
@@ -19,21 +25,21 @@ newtype TypecheckM a = TypecheckM
 
 -- UnionFind
 
-getUF :: TypecheckM UF
+getUF :: TypecheckEff UF
 getUF = do
-  gets uf_
+  E.liftEff (Proxy @"uf") $ gets uf_
 
-setUF :: UF -> TypecheckM ()
+setUF :: UF -> TypecheckEff ()
 setUF uf = do
-  TypecheckState _ l <- get
-  put $ TypecheckState uf l
+  TypecheckState _ l <- E.liftEff (Proxy @"uf") get
+  E.liftEff (Proxy @"uf") $ put $ TypecheckState uf l
 
-setParent :: TypeExpr -> TypeExpr -> TypecheckM ()
+setParent :: TypeExpr -> TypeExpr -> TypecheckEff ()
 setParent v p = do
   uf <- getUF
   setUF $ M.insert v p uf
 
-find :: TypeExpr -> TypecheckM TypeExpr
+find :: TypeExpr -> TypecheckEff TypeExpr
 find tv = do
   uf <- getUF
   let p = Maybe.fromMaybe tv (uf M.!? tv)
@@ -44,7 +50,7 @@ find tv = do
   setParent tv parent
   pure parent
 
-union :: TypeExpr -> TypeExpr -> TypecheckM ()
+union :: TypeExpr -> TypeExpr -> TypecheckEff ()
 union l r = do
   uf <- getUF
   lp <- find l
@@ -61,16 +67,16 @@ union l r = do
 
 -- LEVEL
 
-enterLevel :: TypecheckM ()
+enterLevel :: TypecheckEff ()
 enterLevel = do
-  TypecheckState u l <- get
-  put $ TypecheckState u (l + 1)
+  TypecheckState u l <- E.liftEff (Proxy @"uf") get
+  E.liftEff (Proxy @"uf") $ put $ TypecheckState u (l + 1)
 
-leaveLevel :: TypecheckM ()
+leaveLevel :: TypecheckEff ()
 leaveLevel = do
-  TypecheckState u l <- get
-  put $ TypecheckState u (l - 1)
+  TypecheckState u l <- E.liftEff (Proxy @"uf") get
+  E.liftEff (Proxy @"uf") $ put $ TypecheckState u (l - 1)
 
-currentLevel :: TypecheckM Level
+currentLevel :: TypecheckEff Level
 currentLevel = do
-  gets level_
+  E.liftEff (Proxy @"uf") $ gets level_
