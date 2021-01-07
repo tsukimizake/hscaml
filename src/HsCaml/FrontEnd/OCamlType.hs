@@ -1,6 +1,10 @@
 {-# OPTIONS -Wall #-}
-{-# LANGUAGE OverloadedStrings, PatternSynonyms #-}
+{-# LANGUAGE OverloadedStrings #-}
+
+{-# OPTIONS -Wall #-}
+
 module HsCaml.FrontEnd.OCamlType where
+
 import HsCaml.FrontEnd.Types
 
 ocamlInt :: TypeExpr

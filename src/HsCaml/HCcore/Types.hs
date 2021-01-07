@@ -1,5 +1,4 @@
 {-# OPTIONS -Wall #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE GADTs #-}
 module HsCaml.HCcore.Types where
 import HsCaml.FrontEnd.Types hiding (Expr, TExpr)
