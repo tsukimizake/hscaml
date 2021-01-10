@@ -38,4 +38,4 @@ throw :: CompileError -> TypecheckEff ()
 throw = E.throwEff (Proxy @"err")
 
 runTypecheckEff :: TypecheckEff a -> Either CompileError a
-runTypecheckEff = E.leaveEff . fmap fst . flip E.runStateEff UF.initialUFState . E.runEitherEff . fmap fst . flip E.runStateEff GS.initialGensymState
+runTypecheckEff = E.leaveEff . flip E.evalStateEff UF.initialUFState . E.runEitherEff . flip E.evalStateEff GS.initialGensymState
