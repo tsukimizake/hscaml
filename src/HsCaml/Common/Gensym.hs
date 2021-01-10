@@ -33,10 +33,10 @@ initialGensymState = GensymState {_counter = M.empty, _renameStack = M.empty}
 
 L.makeLenses ''GensymState
 
-genSym :: Monad m => Text -> GensymT m Text
+genSym :: Text -> GensymM Text
 genSym x = do
   oldmap <- use counter
   let n = fromMaybe 0 (oldmap ^. at x) :: Int
   let newmap = oldmap & at x ?~ (n + 1)
   counter .= newmap
-  pure $ "_" <> x <> "_gen_" <> (T.pack $ show n)
+  pure $ "_" <> x <> "_gen_" <> T.pack (show n)
