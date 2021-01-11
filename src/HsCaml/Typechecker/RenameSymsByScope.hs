@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}
+
 {-# OPTIONS -Wno-name-shadowing #-}
 module HsCaml.TypeChecker.RenameSymsByScope (renameSymsByScope) where
 
@@ -39,7 +41,7 @@ popRenameStack s = do
     Just xs -> liftState $ GS.renameStack .= (stack & at s ?~ Prelude.tail xs)
 
 unwrapSym :: Sym -> Name
-unwrapSym s = s ^. _name
+unwrapSym s = s.name
 
 -- let x = 0
 -- in let x = 1

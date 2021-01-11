@@ -1,21 +1,19 @@
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}
 
 module HsCaml.FrontEnd.Types where
 
-import qualified Control.Lens as L
 import Data.Text (Text)
 import Deriving.Show.Simple
-import GHC.Generics
+import GHC.Generics (Generic)
 
 type Name = Text
 
 newtype Sym = Sym
-  { __name :: Name
+  { name :: Name
   }
   deriving (Eq, Ord, Generic)
   deriving (Show) via (WrapSimple Sym)
@@ -78,26 +76,37 @@ data Expr
   | Array [Expr]
   deriving (Show, Eq, Ord)
 
+data Parsed
+
+data Typed
+
+data family TypeF a b
+
+data instance TypeF Typed TypeExpr = TypeExpr
+
+newtype instance TypeF Parsed TypeExpr = Maybe TypeExpr
+
 -- 型付いた式
 data TExpr
-  = TConstant Value TypeExpr
-  | TVar Sym TypeExpr
-  | TParen TExpr TypeExpr
-  | TInfixOpExpr TExpr InfixOp TExpr TypeExpr
-  | TBegEnd TExpr TypeExpr
-  | TMultiExpr [TExpr] TypeExpr
-  | TConstr TExpr TypeExpr
-  | TIfThenElse TExpr TExpr TExpr TypeExpr
-  | TMatch TExpr [(Pattern, TExpr)] TypeExpr
-  | TWhile TExpr TExpr TypeExpr
-  | TFunApply TExpr [TExpr] TypeExpr
-  | TLet LetPattern TExpr TypeExpr
-  | TLetRec LetPattern TExpr TypeExpr
-  | TLetIn LetPattern TExpr TExpr TypeExpr
-  | TLetRecIn LetPattern TExpr TExpr TypeExpr
-  | TList [TExpr] TypeExpr
-  | TArray [TExpr] TypeExpr
-  deriving (Show, Eq, Ord)
+  = TConstant {val :: Value, typeExpr :: TypeExpr}
+  | TVar {sym :: Sym, typeExpr :: TypeExpr}
+  | TParen {body :: TExpr, typeExpr :: TypeExpr}
+  | TInfixOpExpr {lhs :: TExpr, op :: InfixOp, rhs :: TExpr, typeExpr :: TypeExpr}
+  | TBegEnd {body :: TExpr, typeExpr :: TypeExpr}
+  | TMultiExpr {bodies :: [TExpr], typeExpr :: TypeExpr}
+  | TConstr {arg :: TExpr, typeExpr :: TypeExpr}
+  | TIfThenElse {if_ :: TExpr, then_ :: TExpr, else_ :: TExpr, typeExpr :: TypeExpr}
+  | TMatch {var :: TExpr, pats :: [(Pattern, TExpr)], typeExpr :: TypeExpr}
+  | TWhile {cond :: TExpr, body :: TExpr, typeExpr :: TypeExpr}
+  | TFunApply {fun :: TExpr, args :: [TExpr], typeExpr :: TypeExpr}
+  | TLet {pat :: LetPattern, body :: TExpr, typeExpr :: TypeExpr}
+  | TLetRec {pat :: LetPattern, body :: TExpr, typeExpr :: TypeExpr}
+  | TLetIn {pat :: LetPattern, rhs :: TExpr, body :: TExpr, typeExpr :: TypeExpr}
+  | TLetRecIn {pat :: LetPattern, rhs :: TExpr, body :: TExpr, typeExpr :: TypeExpr}
+  | TList {bodies :: [TExpr], typeExpr :: TypeExpr}
+  | TArray {bodies :: [TExpr], typeExpr :: TypeExpr}
+  deriving (Eq, Ord, Generic)
+  deriving (Show) via (WrapSimple TExpr)
 
 data TopLevel
   = TopLevelExpr Expr
@@ -106,48 +115,48 @@ data TopLevel
 
 newtype Statement = Statement [TopLevel] deriving (Show, Eq)
 
-data TStatement = TStatement [TExpr] [TypeDecl] deriving (Show, Eq)
+data TStatement f = TStatement [TExpr] [TypeDecl]
 
 data LetPattern
   = FuncLetPattern
-      { _lpatType_ :: TypeExpr,
-        _funcsym_ :: Sym,
-        _args_ :: [(Sym, TypeExpr)]
+      { lpatType :: TypeExpr,
+        funcsym :: Sym,
+        args :: [(Sym, TypeExpr)]
       }
   | LetPattern
-      { _lpatType_ :: TypeExpr,
-        _pat_ :: Pattern
+      { lpatType :: TypeExpr,
+        pat :: Pattern
       }
   deriving (Eq, Ord, Generic)
   deriving (Show) via (WrapSimple LetPattern)
 
 data Pattern
   = ConstantPattern
-      { _mpatType_ :: TypeExpr,
-        _val_ :: Value
+      { mpatType :: TypeExpr,
+        val :: Value
       }
   | ParenPattern
-      { _mpatType_ :: TypeExpr,
-        _mpat_ :: Pattern
+      { mpatType :: TypeExpr,
+        mpat :: Pattern
       }
   | ListPattern
-      { _mpatType_ :: TypeExpr,
-        _patterns_ :: [Pattern]
+      { mpatType :: TypeExpr,
+        patterns :: [Pattern]
       }
   | OrPattern
-      { _mpatType_ :: TypeExpr,
-        _left_ :: Pattern,
-        _right_ :: Pattern
+      { mpatType :: TypeExpr,
+        left :: Pattern,
+        right :: Pattern
       }
   | VarPattern
-      { _mpatType_ :: TypeExpr,
-        _sym_ :: Sym
+      { mpatType :: TypeExpr,
+        sym :: Sym
       }
   | ConstrPattern
-      { _mpatType_ :: TypeExpr,
-        _constr_ :: Sym,
-        _rest_ :: Pattern,
-        _dcId_ :: Maybe Int
+      { mpatType :: TypeExpr,
+        constr :: Sym,
+        rest :: Pattern,
+        dcId :: Maybe Int
       }
   deriving (Eq, Ord, Generic)
   deriving (Show) via (WrapSimple Pattern)
@@ -169,61 +178,55 @@ data InfixOp
   | Mod
   deriving (Show, Eq, Ord)
 
-L.makeLenses ''Sym
-L.makePrisms ''Expr
-L.makeClassyFor "HasTypeExpr" "typeExpr_" [] ''TypeExpr
-L.makeClassyFor "HasPatType" "patType_" [] ''TypeExpr
-L.makeLenses ''LetPattern
-L.makeLenses ''Pattern
-L.makeLenses ''TExpr
-L.makeClassyPrisms ''TExpr
+class HasPatType a where
+  patType :: a -> TypeExpr
 
 instance HasPatType LetPattern where
-  patType_ = lpatType_
+  patType = lpatType
 
 instance HasPatType Pattern where
-  patType_ = mpatType_
+  patType = mpatType
 
-instance HasTypeExpr TExpr where
-  typeExpr_ :: L.Lens' TExpr TypeExpr
-  typeExpr_ = L.lens getter setter
-    where
-      getter :: TExpr -> TypeExpr
-      getter (TConstant _ x) = x
-      getter (TVar _ x) = x
-      getter (TParen _ x) = x
-      getter (TInfixOpExpr _ _ _ x) = x
-      getter (TBegEnd _ x) = x
-      getter (TMultiExpr _ x) = x
-      getter (TConstr _ x) = x
-      getter (TIfThenElse _ _ _ x) = x
-      getter (TMatch _ _ x) = x
-      getter (TWhile _ _ x) = x
-      getter (TFunApply _ _ x) = x
-      getter (TLet _ _ x) = x
-      getter (TLetRec _ _ x) = x
-      getter (TLetIn _ _ _ x) = x
-      getter (TLetRecIn _ _ _ x) = x
-      getter (TList _ x) = x
-      getter (TArray _ x) = x
-      setter :: TExpr -> TypeExpr -> TExpr
-      setter (TConstant e _) x = TConstant e x
-      setter (TVar e _) x = TVar e x
-      setter (TParen e _) x = TParen e x
-      setter (TInfixOpExpr e f g _) x = TInfixOpExpr e f g x
-      setter (TBegEnd e _) x = TBegEnd e x
-      setter (TMultiExpr e _) x = TMultiExpr e x
-      setter (TConstr e _) x = TConstr e x
-      setter (TIfThenElse e f g _) x = TIfThenElse e f g x
-      setter (TMatch e f _) x = TMatch e f x
-      setter (TWhile e f _) x = TWhile e f x
-      setter (TFunApply e f _) x = TFunApply e f x
-      setter (TLet e f _) x = TLet e f x
-      setter (TLetRec e f _) x = TLetRec e f x
-      setter (TLetIn e f g _) x = TLetIn e f g x
-      setter (TLetRecIn e f g _) x = TLetRecIn e f g x
-      setter (TList e _) x = TList e x
-      setter (TArray e _) x = TArray e x
+--instance HasTypeExpr TExpr where
+--  typeExpr_ :: L.Lens' TExpr TypeExpr
+--  typeExpr_ = L.lens undefined undefined
+--    where
+--      getter :: TExpr -> TypeF Typed TypeExpr
+--      getter (TConstant _ x) = x
+--      getter (TVar _ x) = x
+--      getter (TParen _ x) = x
+--      getter (TInfixOpExpr _ _ _ x) = x
+--      getter (TBegEnd _ x) = x
+--      getter (TMultiExpr _ x) = x
+--      getter (TConstr _ x) = x
+--      getter (TIfThenElse _ _ _ x) = x
+--      getter (TMatch _ _ x) = x
+--      getter (TWhile _ _ x) = x
+--      getter (TFunApply _ _ x) = x
+--      getter (TLet _ _ x) = x
+--      getter (TLetRec _ _ x) = x
+--      getter (TLetIn _ _ _ x) = x
+--      getter (TLetRecIn _ _ _ x) = x
+--      getter (TList _ x) = x
+--      getter (TArray _ x) = x
+--      setter :: TExpr -> TypeF Typed TypeExpr -> TExpr
+--      setter (TConstant e _) x = TConstant e x
+--      setter (TVar e _) x = TVar e x
+--      setter (TParen e _) x = TParen e x
+--      setter (TInfixOpExpr e f g _) x = TInfixOpExpr e f g x
+--      setter (TBegEnd e _) x = TBegEnd e x
+--      setter (TMultiExpr e _) x = TMultiExpr e x
+--      setter (TConstr e _) x = TConstr e x
+--      setter (TIfThenElse e f g _) x = TIfThenElse e f g x
+--      setter (TMatch e f _) x = TMatch e f x
+--      setter (TWhile e f _) x = TWhile e f x
+--      setter (TFunApply e f _) x = TFunApply e f x
+--      setter (TLet e f _) x = TLet e f x
+--      setter (TLetRec e f _) x = TLetRec e f x
+--      setter (TLetIn e f g _) x = TLetIn e f g x
+--      setter (TLetRecIn e f g _) x = TLetRecIn e f g x
+--      setter (TList e _) x = TList e x
+--      setter (TArray e _) x = TArray e x
 
 toExpr :: TExpr -> Expr
 toExpr (TConstant x _) = Constant x

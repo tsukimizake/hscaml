@@ -37,6 +37,7 @@ dependencies:
   - extensible-skeleton
   - text-show
   - deriving-show-simple
+  - record-hasfield
 ghc-options:
   - -Wincomplete-patterns
   - -Wall

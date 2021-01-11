@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}
+
 {-# OPTIONS -Wall #-}
 
 module HsCaml.TypeChecker.CheckFinished (checkFinished) where
@@ -15,7 +17,7 @@ checkFinished = traverseTExpr impl
     isCorrectlyInferedType _ = True
     impl :: TExpr -> Either CompileError TExpr
     impl e =
-      let isOK = isCorrectlyInferedType $ e ^. typeExpr_
+      let isOK = isCorrectlyInferedType $ e.typeExpr
        in if isOK
             then Right e
-            else Left . TypeError $ (pack . show) (e ^. typeExpr_) <> " couldn't be infered!\n in Expr " <> (pack . show) (toExpr e)
+            else Left . TypeError $ (pack . show) (e.typeExpr) <> " couldn't be infered!\n in Expr " <> (pack . show) (toExpr e)

@@ -1,8 +1,8 @@
+{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}
+
 module HsCaml.TypeChecker.TypeCheckUtil where
 
-import Control.Lens as L
-import Data.Functor.Identity
-import Data.Monoid
+import Control.Monad.Identity
 import Data.Text
 import HsCaml.FrontEnd.Types as Types
 
@@ -133,7 +133,7 @@ traverseTExpr f (TArray xs t) = do
   xs' <- mapM (traverseTExpr f) xs
   f $ TArray xs' t
 
-traverseTypeExpr :: (Monad m) => (TypeExpr -> m TypeExpr) -> TypeExpr -> (m TypeExpr)
+traverseTypeExpr :: (Monad m) => (TypeExpr -> m TypeExpr) -> (TypeExpr -> m TypeExpr)
 traverseTypeExpr f (l ::-> r) = do
   l' <- traverseTypeExpr f l
   r' <- traverseTypeExpr f r
@@ -198,7 +198,8 @@ instance TypeVarReplaceable TExpr where
       replaceInPatterns (TLetRecIn p a b c) = TLetRecIn (replaceTypeVar from to p) a b c
       replaceInPatterns x = x
       impl :: TExpr -> TExpr
-      impl e = replaceInPatterns $ e & typeExpr_ .~ (replaceTypeVar from to (e ^. typeExpr_))
+      impl e =
+        replaceInPatterns $ e {typeExpr = replaceTypeVar from to e.typeExpr}
 
 toTV :: TypeExpr -> Either CompileError TV
 toTV (TypeVar s _) = pure $ TV s
@@ -206,5 +207,3 @@ toTV v = Left $ TypeError $ pack $ show v <> "is not TypeVar"
 
 fromTV :: TV -> Types.Level -> TypeExpr
 fromTV (TV s) = TypeVar s
-
-L.makeLenses ''TypeConstraint

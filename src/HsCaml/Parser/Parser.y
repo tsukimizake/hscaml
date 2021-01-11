@@ -4,7 +4,6 @@ module HsCaml.Parser.Parser (parseStatement, parseExpr, parseTopLevel) where
 import HsCaml.FrontEnd.Types as Types
 import HsCaml.Parser.Token
 import HsCaml.Parser.Lexer
-import Control.Lens hiding ((:<), (:>))
 import qualified Data.Text as T
 }
 
@@ -186,7 +185,7 @@ Pattern :: {Pattern}
   : Constant {ConstantPattern UnspecifiedType $1}
   | downvar {VarPattern UnspecifiedType (Sym $1)}
   | "(" Pattern ":" TypeExpr ")" {let theType = $4
-                                  in ParenPattern theType ($2 & patType_ .~ theType)}
+                                  in ParenPattern theType ($2{ mpatType = theType })}
   | "(" Pattern ")" {ParenPattern UnspecifiedType $2}
   | "[" PatternList "]" {ListPattern UnspecifiedType $2}
   -- | orpat
