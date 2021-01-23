@@ -1,22 +1,34 @@
+{-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}
+
 module HsCaml.TypeChecker.UFTypeChecker (uftypeCheck) where
 
-import Data.Map as M
+import HsCaml.FrontEnd.OCamlType
 import HsCaml.FrontEnd.Types
 import HsCaml.TypeChecker.TypeCheckEff
 import HsCaml.TypeChecker.TypeCheckUtil
-import HsCaml.TypeChecker.UFUtil
-
-type Env = M.Map Sym TypeExpr
 
 occurs :: TV -> TypeExpr -> TypecheckEff Bool
-occurs = undefined
+occurs v = undefined
 
 typeof :: Env -> Expr -> TypecheckEff TypeExpr
-typeof = undefined
+typeof _ (IntC _) = pure ocamlInt
+typeof _ (BoolC _) = pure ocamlBool
+typeof _ (Var s) = inst =<< findEnv s
+typeof env (Let pat rhs) = do
+  enterLevel
+  tpat <- newvar
+  trhs <- typeof rhs
+  leaveLevel
+  pure ocamlUnit
+typeof env (LetIn pat rhs body) = do
+  enterLevel
+  leaveLevel
+  pure ocamlUnit
 
 -- gensymしてTVarつくる
-newvar :: Level -> TypecheckEff TypeExpr
-newvar l = do
+newvar :: TypecheckEff TypeExpr
+newvar = do
+  l <- currentLevel
   flip TypeVar l <$> genSym ""
 
 -- let時にqvarにしたりしなかったりする
@@ -30,7 +42,7 @@ inst = do
   where
     -- todo いろいろ
     impl :: TypeExpr -> TypecheckEff TypeExpr
-    impl (QVar _) = newvar 0
+    impl (QVar _) = newvar
     impl x = pure x
 
 uftypeCheck :: Expr -> Either CompileError TExpr
