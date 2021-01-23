@@ -3,6 +3,7 @@
 module HsCaml.TypeChecker.TypeCheckUtil where
 
 import Control.Monad.Identity
+import Data.Bifunctor
 import Data.Text
 import HsCaml.FrontEnd.Types as Types
 
@@ -69,6 +70,69 @@ traverseExpr f (Types.List xs) = do
 traverseExpr f (Array xs) = do
   xs' <- mapM (traverseExpr f) xs
   pure $ Array xs'
+
+toTExpr :: (Monad m) => Expr -> m TExpr
+toTExpr x@(Constant _) = toTExpr x
+toTExpr x@(Var _) = toTExpr x
+toTExpr (Paren e) = do
+  e' <- toTExpr e
+  pure $ TParen e' UnspecifiedType
+toTExpr (InfixOpExpr e iop g) = do
+  e' <- toTExpr e
+  g' <- toTExpr g
+  pure $ TInfixOpExpr e' iop g' UnspecifiedType
+toTExpr (BegEnd e) = do
+  e' <- toTExpr e
+  pure $ TBegEnd e' UnspecifiedType
+toTExpr (MultiExpr e) = do
+  e' <- mapM toTExpr e
+  pure $ TMultiExpr e' UnspecifiedType
+toTExpr (Constr e) = do
+  e' <- toTExpr e
+  pure $ TConstr e' UnspecifiedType
+toTExpr (IfThenElse e1 e2 e3) = do
+  e1' <- toTExpr e1
+  e2' <- toTExpr e2
+  e3' <- toTExpr e3
+  pure $ TIfThenElse e1' e2' e3' UnspecifiedType
+toTExpr (Match e1 e2) = do
+  e1' <- toTExpr e1
+  e2' <-
+    mapM
+      ( \(x, y) -> do
+          y' <- toTExpr y
+          pure (x, y')
+      )
+      e2
+  pure $ TMatch e1' e2' UnspecifiedType
+toTExpr (While e1 e2) = do
+  e1' <- toTExpr e1
+  e2' <- toTExpr e2
+  pure $ TWhile e1' e2' UnspecifiedType
+toTExpr (FunApply e1 e2) = do
+  e1' <- toTExpr e1
+  e2' <- mapM toTExpr e2
+  pure $ TFunApply e1' e2' UnspecifiedType
+toTExpr (Let e1 e2) = do
+  e2' <- toTExpr e2
+  pure $ TLet e1 e2' UnspecifiedType
+toTExpr (LetRec e1 e2) = do
+  e2' <- toTExpr e2
+  pure $ TLetRec e1 e2' UnspecifiedType
+toTExpr (LetIn e1 e2 e3) = do
+  e2' <- toTExpr e2
+  e3' <- toTExpr e3
+  pure $ TLetIn e1 e2' e3' UnspecifiedType
+toTExpr (LetRecIn e1 e2 e3) = do
+  e2' <- toTExpr e2
+  e3' <- toTExpr e3
+  pure $ TLetRecIn e1 e2' e3' UnspecifiedType
+toTExpr (Types.List xs) = do
+  xs' <- mapM toTExpr xs
+  pure $ TList xs' UnspecifiedType
+toTExpr (Array xs) = do
+  xs' <- mapM toTExpr xs
+  pure $ TArray xs' UnspecifiedType
 
 traverseTExpr :: (Monad m) => (TExpr -> m TExpr) -> TExpr -> m TExpr
 traverseTExpr f x@(TConstant _ _) = f x
@@ -185,13 +249,13 @@ instance TypeVarReplaceable Pattern where
   replaceTypeVar from to (OrPattern t l r) = undefined
 
 instance TypeVarReplaceable LetPattern where
-  replaceTypeVar from to (FuncLetPattern t f xs) = (FuncLetPattern (replaceTypeVar from to t) f (fmap (replaceTypeVar from to) <$> xs))
-  replaceTypeVar from to (LetPattern t s) = (LetPattern (replaceTypeVar from to t) (replaceTypeVar from to s))
+  replaceTypeVar from to (FuncLetPattern t f xs) = FuncLetPattern (replaceTypeVar from to t) f (fmap (replaceTypeVar from to) <$> xs)
+  replaceTypeVar from to (LetPattern t s) = LetPattern (replaceTypeVar from to t) (replaceTypeVar from to s)
 
 instance TypeVarReplaceable TExpr where
   replaceTypeVar from@(TV fs) to orig = runIdentity $ (traverseTExpr $ pure . impl) orig
     where
-      replaceInPatterns (TMatch a xs b) = TMatch a (fmap (\(p, e) -> (replaceTypeVar from to p, e)) xs) b
+      replaceInPatterns (TMatch a xs b) = TMatch a (fmap (first (replaceTypeVar from to)) xs) b
       replaceInPatterns (TLet p a b) = TLet (replaceTypeVar from to p) a b
       replaceInPatterns (TLetIn p a b c) = TLetIn (replaceTypeVar from to p) a b c
       replaceInPatterns (TLetRec p a b) = TLetRec (replaceTypeVar from to p) a b

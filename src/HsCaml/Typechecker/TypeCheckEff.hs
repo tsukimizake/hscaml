@@ -36,7 +36,7 @@ liftGS = E.liftEff (Proxy @"gs")
 genSym :: Text -> TypecheckEff Text
 genSym = liftGS . GS.genSym
 
-throw :: CompileError -> TypecheckEff ()
+throw :: CompileError -> TypecheckEff a
 throw = E.throwEff (Proxy @"err")
 
 runTypecheckEff :: TypecheckEff a -> Either CompileError a
