@@ -1,14 +1,18 @@
 module HsCaml.TypeChecker.TypeCheckEff where
 
+import Control.Monad.State.Strict as S
 import qualified Data.Extensible as E
 import qualified Data.Extensible.Effect as E
+import Data.Map as M
 import Data.Proxy
 import Data.Text
 import qualified HsCaml.Common.Gensym as GS
 import HsCaml.FrontEnd.Types
 import qualified HsCaml.TypeChecker.UFUtil as UF
 
-type TypecheckEff = E.Eff '["gs" E.>: GS.GensymM, "err" E.>: E.EitherEff CompileError, "uf" E.>: UF.TypecheckUFM]
+type Env = M.Map Sym TypeExpr
+
+type TypecheckEff = E.Eff '["gs" E.>: GS.GensymM, "err" E.>: E.EitherEff CompileError, "uf" E.>: UF.TypecheckUFM, "env" E.>: E.State Env, "lv" E.>: E.State (M.Map Sym Level)]
 
 liftUF :: UF.TypecheckUFM a -> TypecheckEff a
 liftUF = E.liftEff (Proxy @"uf")
@@ -38,4 +42,13 @@ throw :: CompileError -> TypecheckEff ()
 throw = E.throwEff (Proxy @"err")
 
 runTypecheckEff :: TypecheckEff a -> Either CompileError a
-runTypecheckEff = E.leaveEff . flip E.evalStateEff UF.initialUFState . E.runEitherEff . flip E.evalStateEff GS.initialGensymState
+runTypecheckEff = E.leaveEff . flip E.evalStateEff M.empty . flip E.evalStateEff M.empty . flip E.evalStateEff UF.initialUFState . E.runEitherEff . flip E.evalStateEff GS.initialGensymState
+
+findEnv :: Sym -> TypecheckEff TypeExpr
+findEnv s = E.liftEff (Proxy @"env") . S.gets $ flip (M.!) s
+
+putLevelMap :: Sym -> Level -> TypecheckEff ()
+putLevelMap k v = E.liftEff (Proxy @"lv") . S.modify $ M.insert k v
+
+getLevelMap :: Sym -> TypecheckEff Level
+getLevelMap k = E.liftEff (Proxy @"lv") . S.gets $ flip (M.!) k

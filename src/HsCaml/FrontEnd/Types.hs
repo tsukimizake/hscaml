@@ -76,16 +76,6 @@ data Expr
   | Array [Expr]
   deriving (Show, Eq, Ord)
 
-data Parsed
-
-data Typed
-
-data family TypeF a b
-
-data instance TypeF Typed TypeExpr = TypeExpr
-
-newtype instance TypeF Parsed TypeExpr = Maybe TypeExpr
-
 -- 型付いた式
 data TExpr
   = TConstant {val :: Value, typeExpr :: TypeExpr}
