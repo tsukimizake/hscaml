@@ -72,8 +72,8 @@ traverseExpr f (Array xs) = do
   pure $ Array xs'
 
 toTExpr :: (Monad m) => Expr -> m TExpr
-toTExpr x@(Constant _) = toTExpr x
-toTExpr x@(Var _) = toTExpr x
+toTExpr (Constant a) = pure $ TConstant a UnspecifiedType
+toTExpr (Var a) = pure $ TVar a UnspecifiedType
 toTExpr (Paren e) = do
   e' <- toTExpr e
   pure $ TParen e' UnspecifiedType
