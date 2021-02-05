@@ -6,7 +6,8 @@
 
 module HsCaml.FrontEnd.Types where
 
-import Data.Text (Text)
+import Data.String
+import Data.Text
 import Deriving.Show.Simple
 import GHC.Generics (Generic)
 import TextShow
@@ -18,6 +19,9 @@ newtype Sym = Sym
   }
   deriving (Eq, Ord, Generic, TextShow)
   deriving (Show) via (WrapSimple Sym)
+
+instance IsString Sym where
+  fromString = Sym . pack
 
 data Value
   = IntVal Int
@@ -121,6 +125,8 @@ data LetPattern
   deriving (Eq, Ord, Generic)
   deriving (Show) via (WrapSimple LetPattern)
 
+-- lpattypeとmpattypeがdupでは？？？？
+-- 手での型指定はUnspecifiedTypeでなくすればよさそう
 data Pattern
   = ConstantPattern
       { mpatType :: TypeExpr,
@@ -259,7 +265,10 @@ pattern TIntC :: Int -> TExpr
 pattern TIntC x = TConstant (IntVal x) (TypeAtom "int")
 
 pattern TBoolC :: Bool -> TExpr
-pattern TBoolC x = TConstant (BoolVal x) (TypeAtom "Bool")
+pattern TBoolC x = TConstant (BoolVal x) (TypeAtom "bool")
+
+tIntVar :: Text -> TExpr
+tIntVar s = TVar (Sym s) (TypeAtom "int")
 
 pattern (:*:) :: TExpr -> TExpr -> TExpr
 pattern l :*: r = TInfixOpExpr l Mul r (TypeAtom "int")

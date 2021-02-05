@@ -10,9 +10,6 @@ import HsCaml.FrontEnd.Types as Types
 import HsCaml.Parser.Parser
 import Test.Hspec
 
-instance IsString Sym where
-  fromString x = Sym $ pack x
-
 testExprParser :: String -> Expr -> Spec
 testExprParser lhs rhs = it lhs $ do
   parseTopLevel lhs `shouldBe` (TopLevelExpr rhs)
