@@ -94,22 +94,22 @@ Expr :: {Expr}
   | Expr "&&" Expr {$1 :&& $3}
   | Expr "||" Expr {$1 :|| $3}
   | Expr "%" Expr {$1 :% $3}
-  | "let" LetPattern "=" Expr {Let $2 $4}
-  | "let" "rec" LetPattern "=" Expr {LetRec $3 $5}
-  | "let" LetPattern "=" Expr "in" Expr {LetIn $2 $4 $6}
-  | "let" "rec" LetPattern "=" Expr "in" Expr {LetRecIn $3 $5 $7}
-  | "fun" SymList "->" Expr {LetIn (FuncLetPattern UnspecifiedType (Sym (T.pack "fun")) (zip $2 (repeat UnspecifiedType))) $4 $4}
+  | "let" LetPattern "=" Expr {Let $2 $4 UnspecifiedType}
+  | "let" "rec" LetPattern "=" Expr {LetRec $3 $5 UnspecifiedType}
+  | "let" LetPattern "=" Expr "in" Expr {LetIn $2 $4 $6 UnspecifiedType}
+  | "let" "rec" LetPattern "=" Expr "in" Expr {LetRecIn $3 $5 $7 UnspecifiedType}
+  | "fun" SymList "->" Expr {LetIn (FuncLetPattern UnspecifiedType (Sym (T.pack "fun")) (zip $2 (repeat UnspecifiedType))) $4 $4 UnspecifiedType}
   | Expr "*" Expr {$1 :* $3}
   | Expr "/" Expr {$1 :/ $3}
   | Expr "*." Expr {$1 :*. $3}
   | Expr "/." Expr {$1 :/. $3}
-  | Expr ArgExprList {FunApply $1 $2}
-  | "if" Expr "then" Expr "else" Expr {IfThenElse $2 $4 $6}
-  | "match" Expr "with" MatchPats {Match $2 $4}
+  | Expr ArgExprList {FunApply $1 $2 UnspecifiedType}
+  | "if" Expr "then" Expr "else" Expr {IfThenElse $2 $4 $6 UnspecifiedType}
+  | "match" Expr "with" MatchPats {Match $2 $4 UnspecifiedType}
   | ArgExpr {$1}
-  | ExprList {MultiExpr $1}
-  | "[" ExprList "]" {Types.List $2}
-  | "[|" ExprList "|]" {Array $2}
+  | ExprList {MultiExpr $1 UnspecifiedType}
+  | "[" ExprList "]" {Types.List $2 UnspecifiedType}
+  | "[|" ExprList "|]" {Array $2 UnspecifiedType}
 
 ExprList :: {[Expr]}
   : Expr ";" {[$1]}
@@ -122,10 +122,10 @@ MatchPat :: {(Pattern, Expr)}
   : "|" Pattern "->" Expr {($2, $4)}
 
 ArgExpr :: {Expr}
-  : "(" Expr ")" {Paren $2}
-  | "begin" Expr "end" {BegEnd $2}
-  | downvar {V $1}
-  | Constant {Constant $1}
+  : "(" Expr ")" {Paren $2 UnspecifiedType}
+  | "begin" Expr "end" {BegEnd $2 UnspecifiedType}
+  | downvar {V $1 }
+  | Constant {Constant $1 UnspecifiedType}
 
 Constant :: {Value}
   : int {IntVal $1}

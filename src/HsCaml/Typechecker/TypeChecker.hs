@@ -6,7 +6,7 @@ import HsCaml.TypeChecker.CheckFinished
 import HsCaml.TypeChecker.RenameSymsByScope
 import HsCaml.TypeChecker.UFTypeChecker
 
-typeCheck :: Expr -> Either CompileError TExpr
+typeCheck :: Expr -> Either CompileError Expr
 typeCheck e = do
   renameSymsByScope e >>= uftypeCheck >>= checkFinished
 

@@ -25,19 +25,19 @@ env ! s = do
       throw $ typeVarNotFound s
     Just r -> inst r
 
-typeof :: Env -> TExpr -> TypecheckEff TypeExpr
+typeof :: Env -> Expr -> TypecheckEff TypeExpr
 typeof _ (TIntC _) = pure ocamlInt
 typeof _ (TBoolC _) = pure ocamlBool
-typeof env (TVar s _) = do
+typeof env (Var s _) = do
   inst =<< env ! s
-typeof env (TLet pat rhs _) = do
+typeof env (Let pat rhs _) = do
   enterLevel
   tpat <- newvar
   -- TODO funcpattern, listpattern, constrpattern
   trhs <- typeof env rhs
   leaveLevel
   pure ocamlUnit
-typeof env (TLetIn pat rhs body _) = do
+typeof env (LetIn pat rhs body _) = do
   enterLevel
   tpat <- newvar
   trhs <- typeof env rhs
@@ -71,11 +71,11 @@ inst = do
     impl (QVar _) = newvar
     impl x = pure x
 
-uftypeCheck :: Expr -> Either CompileError TExpr
+uftypeCheck :: Expr -> Either CompileError Expr
 uftypeCheck e = runTypecheckEff $ do
-  traverseTExpr
+  traverseExpr
     ( \x -> do
         t <- typeof M.empty x
         pure x{typeExpr = t}
     )
-    =<< toTExpr e
+    e

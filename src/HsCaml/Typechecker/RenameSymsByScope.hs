@@ -55,7 +55,7 @@ renameSymsByScope :: Expr -> Either CompileError Expr
 renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.initialGensymState $ impl expr
   where
     impl :: Expr -> RenameSymsEff Expr
-    impl (Var (Sym s)) = do
+    impl (Var (Sym s) _) = do
       stack <- liftState $ use GS.renameStack
       let got = stack ^. at s
       case got of
@@ -65,23 +65,23 @@ renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.in
             0 -> E.throwEff (Proxy @"err") . SemanticsError $ T.intercalate " " ["Symbol", s, "couldn't be found"]
             _ -> pure $ V (head xs)
     impl x@(IntC _) = pure $ x
-    impl (Let (LetPattern t1 (VarPattern t (Sym s))) e) = do
+    impl (Let (LetPattern t1 (VarPattern t (Sym s))) e t2) = do
       e' <- impl e
       s' <- pushAndRenameSym s
       popRenameStack s
-      pure (Let (LetPattern t1 (VarPattern t (Sym s'))) e')
-    impl (LetRec (LetPattern t1 (VarPattern t (Sym s))) e) = do
+      pure (Let (LetPattern t1 (VarPattern t (Sym s'))) e' t2)
+    impl (LetRec (LetPattern t1 (VarPattern t (Sym s))) e t2) = do
       s' <- pushAndRenameSym s
       e' <- impl e
       popRenameStack s
-      pure (LetRec (LetPattern t1 (VarPattern t (Sym s'))) e')
-    impl (LetIn (LetPattern t1 (VarPattern t (Sym s))) e1 e2) = do
+      pure (LetRec (LetPattern t1 (VarPattern t (Sym s'))) e' t2)
+    impl (LetIn (LetPattern t1 (VarPattern t (Sym s))) e1 e2 t2) = do
       e1' <- impl e1
       s' <- pushAndRenameSym s
       e2' <- impl e2
       popRenameStack s
-      pure (LetIn (LetPattern t1 (VarPattern t (Sym s'))) e1' e2')
-    impl (Let (FuncLetPattern t (Sym s) xs) e) = do
+      pure (LetIn (LetPattern t1 (VarPattern t (Sym s'))) e1' e2' t2)
+    impl (Let (FuncLetPattern t (Sym s) xs) e t2) = do
       s' <- pushAndRenameSym s
       args' <- forM xs $ \(s, t) -> do
         s' <- pushAndRenameSym $ unwrapSym $ s
@@ -91,8 +91,8 @@ renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.in
       forM_ xs $ \(s, t) -> do
         s' <- popRenameStack . unwrapSym $ s
         pure (s', t)
-      pure $ Let (FuncLetPattern t (Sym s') (args')) e'
-    impl (LetRec (FuncLetPattern t (Sym s) xs) e) = do
+      pure $ Let (FuncLetPattern t (Sym s') (args')) e' t2
+    impl (LetRec (FuncLetPattern t (Sym s) xs) e t2) = do
       s' <- pushAndRenameSym s
       args' <- forM xs $ \(s, t) -> do
         s' <- pushAndRenameSym $ unwrapSym $ s
@@ -102,8 +102,8 @@ renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.in
       forM_ xs $ \(s, t) -> do
         s' <- popRenameStack . unwrapSym $ s
         pure (s', t)
-      pure $ LetRec (FuncLetPattern t (Sym s') args') e'
-    impl (LetIn (FuncLetPattern t (Sym s) xs) e1 e2) = do
+      pure $ LetRec (FuncLetPattern t (Sym s') args') e' t2
+    impl (LetIn (FuncLetPattern t (Sym s) xs) e1 e2 t2) = do
       args' <- forM xs $ \(s, t) -> do
         s' <- pushAndRenameSym $ unwrapSym $ s
         pure (Sym s', t)
@@ -114,14 +114,14 @@ renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.in
       forM_ xs $ \(s, t) -> do
         s' <- popRenameStack . unwrapSym $ s
         pure (s', t)
-      pure $ LetIn (FuncLetPattern t (Sym s') (args')) e1' e2'
-    impl (LetRecIn (LetPattern t1 (VarPattern t (Sym s))) e1 e2) = do
+      pure $ LetIn (FuncLetPattern t (Sym s') (args')) e1' e2' t2
+    impl (LetRecIn (LetPattern t1 (VarPattern t (Sym s))) e1 e2 t2) = do
       s' <- pushAndRenameSym s
       e1' <- impl e1
       e2' <- impl e2
       popRenameStack s
-      pure (LetRecIn (LetPattern t1 (VarPattern t (Sym s'))) e1' e2')
-    impl (LetRecIn (FuncLetPattern t (Sym s) xs) e1 e2) = do
+      pure (LetRecIn (LetPattern t1 (VarPattern t (Sym s'))) e1' e2' t2)
+    impl (LetRecIn (FuncLetPattern t (Sym s) xs) e1 e2 t2) = do
       s' <- pushAndRenameSym s
       args' <- forM xs $ \(s, t) -> do
         s' <- pushAndRenameSym $ unwrapSym $ s
@@ -132,25 +132,25 @@ renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.in
       forM_ xs $ \(s, t) -> do
         s' <- popRenameStack . unwrapSym $ s
         pure (s', t)
-      pure $ LetRecIn (FuncLetPattern t (Sym s') (args')) e1' e2'
-    impl (FunApply (V f) args) = do
+      pure $ LetRecIn (FuncLetPattern t (Sym s') (args')) e1' e2' t2
+    impl (FunApply (V f) args t) = do
       f' <- impl $ V f
       args' <- forM args $ \arg -> do
         impl arg
-      pure $ FunApply f' args'
-    impl e@(Constant _) = pure e
-    impl e@(Paren _) = traverseExpr impl e
-    impl e@(InfixOpExpr _ _ _) = traverseExpr impl e
-    impl e@(BegEnd _) = traverseExpr impl e
-    impl e@(MultiExpr _) = traverseExpr impl e
-    impl e@(Constr _) = traverseExpr impl e
-    impl e@(Match _ _) = traverseExpr impl e
-    impl e@(While _ _) = traverseExpr impl e
-    impl e@(IfThenElse _ _ _) = traverseExpr impl e
-    impl e@(FunApply _ _) = traverseExpr impl e
-    impl e@(Let (LetPattern _ _) _) = traverseExpr impl e
-    impl e@(LetIn (LetPattern _ _) _ _) = traverseExpr impl e
-    impl e@(LetRec (LetPattern _ _) _) = traverseExpr impl e
-    impl e@(LetRecIn (LetPattern _ _) _ _) = traverseExpr impl e
-    impl e@(Types.List _) = traverseExpr impl e
-    impl e@(Array _) = traverseExpr impl e
+      pure $ FunApply f' args' t
+    impl e@(Constant _ _) = pure e
+    impl e@(Paren _ _) = traverseExpr impl e
+    impl e@(InfixOpExpr _ _ _ _) = traverseExpr impl e
+    impl e@(BegEnd _ _) = traverseExpr impl e
+    impl e@(MultiExpr _ _) = traverseExpr impl e
+    impl e@(Constr _ _) = traverseExpr impl e
+    impl e@(Match _ _ _) = traverseExpr impl e
+    impl e@(While _ _ _) = traverseExpr impl e
+    impl e@(IfThenElse _ _ _ _) = traverseExpr impl e
+    impl e@(FunApply _ _ _) = traverseExpr impl e
+    impl e@(Let (LetPattern _ _) _ _) = traverseExpr impl e
+    impl e@(LetIn (LetPattern _ _) _ _ _) = traverseExpr impl e
+    impl e@(LetRec (LetPattern _ _) _ _) = traverseExpr impl e
+    impl e@(LetRecIn (LetPattern _ _) _ _ _) = traverseExpr impl e
+    impl e@(Types.List _ _) = traverseExpr impl e
+    impl e@(Array _ _) = traverseExpr impl e
