@@ -34,28 +34,28 @@ typeCheckSpec = do
     testRSBS
       "let x = 1 in let x = 2 in let x = 3 in x"
       ( LetIn
-          (LetPattern ocamlInt (VarPattern ocamlInt "_x_gen_0"))
+          (LetPattern UnspecifiedType (VarPattern UnspecifiedType "_x_gen_0"))
           (IntC 1)
           ( LetIn
-              (LetPattern ocamlInt (VarPattern ocamlInt "_x_gen_1"))
+              (LetPattern UnspecifiedType (VarPattern UnspecifiedType "_x_gen_1"))
               (IntC 2)
               ( LetIn
-                  (LetPattern ocamlInt (VarPattern ocamlInt "_x_gen_2"))
+                  (LetPattern UnspecifiedType (VarPattern UnspecifiedType "_x_gen_2"))
                   (IntC 3)
                   (V "_x_gen_2")
-                  ocamlInt
+                  UnspecifiedType
               )
-              ocamlInt
+              UnspecifiedType
           )
-          ocamlInt
+          UnspecifiedType
       )
     testRSBS
       "let rec a = 0 in if a=0 then 2 else 3"
       ( LetRecIn
           (LetPattern UnspecifiedType (VarPattern UnspecifiedType "_a_gen_0"))
-          (Constant (IntVal 0) ocamlInt)
-          (IfThenElse (InfixOpExpr (Var "_a_gen_0" ocamlInt) (Compare Equal) (Constant (IntVal 0) ocamlInt) ocamlInt) (Constant (IntVal 2) ocamlInt) (Constant (IntVal 3) ocamlInt) ocamlInt)
-          ocamlInt
+          (Constant (IntVal 0) UnspecifiedType)
+          (IfThenElse (InfixOpExpr (Var "_a_gen_0" UnspecifiedType) (Compare Equal) (Constant (IntVal 0) UnspecifiedType) UnspecifiedType) (Constant (IntVal 2) UnspecifiedType) (Constant (IntVal 3) UnspecifiedType) UnspecifiedType)
+          UnspecifiedType
       )
     testRSBS
       "let x = 0 in match x with | 42 -> x"
@@ -64,13 +64,13 @@ typeCheckSpec = do
               UnspecifiedType
               (VarPattern UnspecifiedType "_x_gen_0")
           )
-          (Constant (IntVal 0) ocamlInt)
+          (Constant (IntVal 0) UnspecifiedType)
           ( Match
-              (Var "_x_gen_0" ocamlInt)
-              [(ConstantPattern UnspecifiedType (IntVal 42), Var "_x_gen_0" ocamlInt)]
-              (ocamlInt ::-> ocamlInt)
+              (Var "_x_gen_0" UnspecifiedType)
+              [(ConstantPattern UnspecifiedType (IntVal 42), Var "_x_gen_0" UnspecifiedType)]
+              UnspecifiedType
           )
-          ocamlInt
+          UnspecifiedType
       )
     testRSBS
       "let x = 0 in match x with | 42 -> true"
@@ -79,11 +79,11 @@ typeCheckSpec = do
               UnspecifiedType
               (VarPattern UnspecifiedType "_x_gen_0")
           )
-          (Constant (IntVal 0) ocamlInt)
+          (Constant (IntVal 0) UnspecifiedType)
           ( Match
-              (Var "_x_gen_0" ocamlInt)
-              [(ConstantPattern ocamlInt (IntVal 42), (Constant (BoolVal True) ocamlBool))]
-              (ocamlInt ::-> ocamlBool)
+              (Var "_x_gen_0" UnspecifiedType)
+              [(ConstantPattern UnspecifiedType (IntVal 42), (Constant (BoolVal True) UnspecifiedType))]
+              UnspecifiedType
           )
           ocamlBool
       )
