@@ -21,7 +21,7 @@ testRSBS src ast = it src $ do
     Left err -> error $ show err
     Right res' -> res' `shouldBe` ast
 
-testTypeCheckExpr :: String -> TExpr -> Spec
+testTypeCheckExpr :: String -> Expr -> Spec
 testTypeCheckExpr src ast = it src $ do
   let res = typeCheck . parseExpr $ src
   case res of
@@ -34,24 +34,28 @@ typeCheckSpec = do
     testRSBS
       "let x = 1 in let x = 2 in let x = 3 in x"
       ( LetIn
-          (LetPattern UnspecifiedType (VarPattern UnspecifiedType "_x_gen_0"))
+          (LetPattern ocamlInt (VarPattern ocamlInt "_x_gen_0"))
           (IntC 1)
           ( LetIn
-              (LetPattern UnspecifiedType (VarPattern UnspecifiedType "_x_gen_1"))
+              (LetPattern ocamlInt (VarPattern ocamlInt "_x_gen_1"))
               (IntC 2)
               ( LetIn
-                  (LetPattern UnspecifiedType (VarPattern UnspecifiedType "_x_gen_2"))
+                  (LetPattern ocamlInt (VarPattern ocamlInt "_x_gen_2"))
                   (IntC 3)
                   (V "_x_gen_2")
+                  ocamlInt
               )
+              ocamlInt
           )
+          ocamlInt
       )
     testRSBS
       "let rec a = 0 in if a=0 then 2 else 3"
       ( LetRecIn
           (LetPattern UnspecifiedType (VarPattern UnspecifiedType "_a_gen_0"))
-          (Constant (IntVal 0))
-          (IfThenElse (InfixOpExpr (Var "_a_gen_0") (Compare Equal) (Constant (IntVal 0))) (Constant (IntVal 2)) (Constant (IntVal 3)))
+          (Constant (IntVal 0) ocamlInt)
+          (IfThenElse (InfixOpExpr (Var "_a_gen_0" ocamlInt) (Compare Equal) (Constant (IntVal 0) ocamlInt) ocamlInt) (Constant (IntVal 2) ocamlInt) (Constant (IntVal 3) ocamlInt) ocamlInt)
+          ocamlInt
       )
     testRSBS
       "let x = 0 in match x with | 42 -> x"
@@ -60,11 +64,13 @@ typeCheckSpec = do
               UnspecifiedType
               (VarPattern UnspecifiedType "_x_gen_0")
           )
-          (Constant (IntVal 0))
+          (Constant (IntVal 0) ocamlInt)
           ( Match
-              (Var "_x_gen_0")
-              [(ConstantPattern UnspecifiedType (IntVal 42), Var "_x_gen_0")]
+              (Var "_x_gen_0" ocamlInt)
+              [(ConstantPattern UnspecifiedType (IntVal 42), Var "_x_gen_0" ocamlInt)]
+              (ocamlInt ::-> ocamlInt)
           )
+          ocamlInt
       )
     testRSBS
       "let x = 0 in match x with | 42 -> true"
@@ -73,46 +79,48 @@ typeCheckSpec = do
               UnspecifiedType
               (VarPattern UnspecifiedType "_x_gen_0")
           )
-          (Constant (IntVal 0))
+          (Constant (IntVal 0) ocamlInt)
           ( Match
-              (Var "_x_gen_0")
-              [(ConstantPattern UnspecifiedType (IntVal 42), (Constant (BoolVal True)))]
+              (Var "_x_gen_0" ocamlInt)
+              [(ConstantPattern ocamlInt (IntVal 42), (Constant (BoolVal True) ocamlBool))]
+              (ocamlInt ::-> ocamlBool)
           )
+          ocamlBool
       )
   describe "typecheck" $ do
     testTypeCheckExpr
       "let x = 1 in let y= x in y"
-      ( TLetIn
+      ( LetIn
           ( LetPattern
               ocamlInt
               (VarPattern ocamlInt "_x_gen_0")
           )
           (TIntC 1)
-          (TLetIn (LetPattern ocamlInt (VarPattern ocamlInt "_y_gen_0")) (tIntVar "_x_gen_0") (tIntVar "_y_gen_0") ocamlInt)
+          (LetIn (LetPattern ocamlInt (VarPattern ocamlInt "_y_gen_0")) (tIntVar "_x_gen_0") (tIntVar "_y_gen_0") ocamlInt)
           ocamlInt
       )
     testTypeCheckExpr
       "let f x y = x*y in f"
-      ( TLetIn
+      ( LetIn
           ( FuncLetPattern
               (ocamlInt ::-> ocamlInt ::-> ocamlInt)
               "_f_gen_0"
               [(Sym "_x_gen_0", ocamlInt), (Sym "_y_gen_0", ocamlInt)]
           )
-          (TVar "_x_gen_0" ocamlInt :*: TVar "_y_gen_0" ocamlInt)
-          (TVar "_f_gen_0" (ocamlInt ::-> ocamlInt ::-> ocamlInt))
+          (Var "_x_gen_0" ocamlInt :*: Var "_y_gen_0" ocamlInt)
+          (Var "_f_gen_0" (ocamlInt ::-> ocamlInt ::-> ocamlInt))
           (ocamlInt ::-> ocamlInt ::-> ocamlInt)
       )
     testTypeCheckExpr
       "let a = 0 in let b  = a in if a =b then 42 else 3"
-      ( TLetIn
+      ( LetIn
           (LetPattern ocamlInt (VarPattern ocamlInt "_a_gen_0"))
           (TIntC 0)
-          ( TLetIn
+          ( LetIn
               (LetPattern ocamlInt (VarPattern ocamlInt "_b_gen_0"))
-              (TVar "_a_gen_0" ocamlInt)
-              ( TIfThenElse
-                  ((TVar "_a_gen_0" ocamlInt) :==: (TVar "_b_gen_0" ocamlInt))
+              (Var "_a_gen_0" ocamlInt)
+              ( IfThenElse
+                  ((Var "_a_gen_0" ocamlInt) :==: (Var "_b_gen_0" ocamlInt))
                   (TIntC 42)
                   (TIntC 3)
                   ocamlInt
@@ -123,32 +131,32 @@ typeCheckSpec = do
       )
     testTypeCheckExpr
       "let f x y z = if x then y else z"
-      ( TLet
+      ( Let
           ( FuncLetPattern
               (ocamlBool ::-> TypeVar "_4" 0 ::-> TypeVar "_4" 0 ::-> TypeVar "_4" 0)
               "_f_gen_0"
               [(Sym "_x_gen_0", ocamlBool), (Sym "_y_gen_0", TypeVar "_4" 0), (Sym "_z_gen_0", TypeVar "_4" 0)]
           )
-          ( TIfThenElse
-              (TVar "_x_gen_0" ocamlBool)
-              (TVar "_y_gen_0" (TypeVar "_4" 0))
-              (TVar "_z_gen_0" (TypeVar "_4" 0))
+          ( IfThenElse
+              (Var "_x_gen_0" ocamlBool)
+              (Var "_y_gen_0" (TypeVar "_4" 0))
+              (Var "_z_gen_0" (TypeVar "_4" 0))
               (TypeVar "_4" 0)
           )
           ocamlUnit
       )
     testTypeCheckExpr
       "let f x = x in f 0; f true;"
-      ( TLetIn
+      ( LetIn
           ( FuncLetPattern
               (TypeVar "_0" 0 ::-> TypeVar "_0" 0)
               "_f_gen_0"
               [(Sym "_x_gen_0", TypeVar "_0" 0)]
           )
-          (TVar "_x_gen_0" (TypeVar "_0" 0))
-          ( TMultiExpr
-              [ TFunApply (TVar "_f_gen_0" (ocamlInt ::-> ocamlInt)) [TIntC 0] ocamlInt,
-                TFunApply (TVar "_f_gen_0" (ocamlInt ::-> ocamlInt)) [TBoolC True] ocamlBool
+          (Var "_x_gen_0" (TypeVar "_0" 0))
+          ( MultiExpr
+              [ FunApply (Var "_f_gen_0" (ocamlInt ::-> ocamlInt)) [TIntC 0] ocamlInt,
+                FunApply (Var "_f_gen_0" (ocamlInt ::-> ocamlInt)) [TBoolC True] ocamlBool
               ]
               ocamlBool
           )

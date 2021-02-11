@@ -21,22 +21,22 @@ testTypeDeclParser lhs rhs = it lhs $ do
 parserSpec :: Spec
 parserSpec = do
   describe "parseExpr" $ do
-    testExprParser "82*3+3-(2-  2)+  (2  )  " ((((IntC 82) :* (IntC 3)) :+ (IntC 3)) :- (Paren ((IntC 2) :- (IntC 2))) :+ (Paren (IntC 2)))
+    testExprParser "82*3+3-(2-  2)+  (2  )  " ((((IntC 82) :* (IntC 3)) :+ (IntC 3)) :- (Paren ((IntC 2) :- (IntC 2)) UnspecifiedType) :+ (Paren (IntC 2) UnspecifiedType))
     testExprParser "x*y-1" (((V "x") :* (V "y")) :- (IntC 1))
-    testExprParser "x * f y -1" ((V "x" :* (FunApply (V "f") [V "y"])) :- (IntC 1))
-    testExprParser "x - f y *1" (V "x" :- ((FunApply (V "f") [V "y"]) :* (IntC 1)))
+    testExprParser "x * f y -1" ((V "x" :* (FunApply (V "f") [V "y"] UnspecifiedType) :- (IntC 1)))
+    testExprParser "x - f y *1" (V "x" :- (((FunApply (V "f") [V "y"] UnspecifiedType) :* (IntC 1))))
 
-    testExprParser "let eu = 4" (Let (LetPattern UnspecifiedType (VarPattern UnspecifiedType "eu")) (Constant (IntVal 4)))
-    testExprParser "let (eu:'a) = 4" (Let (LetPattern UnspecifiedType (ParenPattern (TypeVar "'a" 0) (VarPattern (TypeVar "'a" 0) "eu"))) (IntC 4))
-    testExprParser "let rec f x = x*x*x" (LetRec (FuncLetPattern UnspecifiedType "f" [("x", UnspecifiedType)]) ((V "x" :* V "x") :* V "x"))
-    testExprParser "let (eu:int) = 4" (Let (LetPattern UnspecifiedType (ParenPattern ocamlInt (VarPattern ocamlInt "eu"))) (Constant (IntVal 4)))
-    testExprParser "let rec eu = 4" (LetRec (LetPattern UnspecifiedType (VarPattern UnspecifiedType "eu")) (Constant (IntVal 4)))
+    testExprParser "let eu = 4" (Let (LetPattern UnspecifiedType (VarPattern UnspecifiedType "eu")) (Constant (IntVal 4) UnspecifiedType) UnspecifiedType)
+    testExprParser "let (eu:'a) = 4" (Let (LetPattern UnspecifiedType (ParenPattern (TypeVar "'a" 0) (VarPattern (TypeVar "'a" 0) "eu"))) (IntC 4) UnspecifiedType)
+    testExprParser "let rec f x = x*x*x" (LetRec (FuncLetPattern UnspecifiedType "f" [("x", UnspecifiedType)]) ((V "x" :* V "x") :* V "x") UnspecifiedType)
+    testExprParser "let (eu:int) = 4" (Let (LetPattern UnspecifiedType (ParenPattern ocamlInt (VarPattern ocamlInt "eu"))) (Constant (IntVal 4) UnspecifiedType) UnspecifiedType)
+    testExprParser "let rec eu = 4" (LetRec (LetPattern UnspecifiedType (VarPattern UnspecifiedType "eu")) (Constant (IntVal 4) UnspecifiedType) UnspecifiedType)
     testExprParser
       "let rec (eu : int  ) = 4"
-      (LetRec (LetPattern UnspecifiedType (ParenPattern ocamlInt (VarPattern ocamlInt "eu"))) (IntC 4))
+      (LetRec (LetPattern UnspecifiedType (ParenPattern ocamlInt (VarPattern ocamlInt "eu"))) (IntC 4) UnspecifiedType)
     testExprParser
       "if x then y else z"
-      (IfThenElse (V "x") (V "y") (V "z"))
+      (IfThenElse (V "x") (V "y") (V "z") UnspecifiedType)
     testExprParser
       "let rec fib x = if x<=1 then 1 else fib (x-1)+fib(x-2)"
       ( LetRec
@@ -44,16 +44,19 @@ parserSpec = do
           ( IfThenElse
               ((V "x") :<= (IntC 1))
               (IntC 1)
-              ( (FunApply (V "fib") [(Paren $ V "x" :- IntC 1)])
-                  :+ (FunApply (V "fib") [(Paren $ V "x" :- IntC 2)])
+              ( (FunApply (V "fib") [(Paren (V "x" :- IntC 1) UnspecifiedType)] UnspecifiedType)
+                  :+ (FunApply (V "fib") [(Paren (V "x" :- IntC 2) UnspecifiedType)] UnspecifiedType)
               )
+              UnspecifiedType
           )
+          UnspecifiedType
       )
     testExprParser
       "let f a b = a = b"
       ( Let
           (FuncLetPattern UnspecifiedType "f" [(Sym "a", UnspecifiedType), (Sym "b", UnspecifiedType)])
           ((V "a") :== (V "b"))
+          UnspecifiedType
       )
     testTypeDeclParser "type hoge = Hoge" (TypeDecl "hoge" [DataCnstr "Hoge" []])
     testTypeDeclParser
@@ -97,14 +100,15 @@ parserSpec = do
       )
     testExprParser
       "let main = print_int 42"
-      (Let (LetPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "main"))) (FunApply (V "print_int") [(IntC 42)]))
+      (Let (LetPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "main"))) (FunApply (V "print_int") [(IntC 42)] UnspecifiedType) UnspecifiedType)
     testExprParser
       "match x with |1 -> true |2 ->false"
       ( Match
           (V "x")
-          [ (ConstantPattern UnspecifiedType (IntVal 1), (Constant (BoolVal True))),
-            (ConstantPattern UnspecifiedType (IntVal 2), (Constant (BoolVal False)))
+          [ (ConstantPattern UnspecifiedType (IntVal 1), (Constant (BoolVal True) UnspecifiedType)),
+            (ConstantPattern UnspecifiedType (IntVal 2), (Constant (BoolVal False) UnspecifiedType))
           ]
+          UnspecifiedType
       )
     testExprParser
       "let f x y = x*y in f"
@@ -116,6 +120,7 @@ parserSpec = do
           )
           ((V "x") :* (V "y"))
           (V "f")
+          UnspecifiedType
       )
     testExprParser
       "let f x y = x*y in 1;2;f;"
@@ -131,7 +136,9 @@ parserSpec = do
                 IntC 2,
                 (V "f")
               ]
+              UnspecifiedType
           )
+          UnspecifiedType
       )
     testExprParser
       "let f g h x = (f g) (h x) in g"
@@ -141,8 +148,9 @@ parserSpec = do
               (Sym "f")
               [(Sym "g", UnspecifiedType), (Sym "h", UnspecifiedType), (Sym "x", UnspecifiedType)]
           )
-          (FunApply (Paren (FunApply (V "f") [(V "g")])) [(Paren (FunApply (V "h") [(V "x")]))])
+          (FunApply (Paren (FunApply (V "f") [(V "g")] UnspecifiedType) UnspecifiedType) [(Paren (FunApply (V "h") [(V "x")] UnspecifiedType) UnspecifiedType)] UnspecifiedType)
           (V "g")
+          UnspecifiedType
       )
     testExprParser
       "fun x -> x+1"
@@ -154,6 +162,7 @@ parserSpec = do
           )
           (V "x" :+ IntC 1)
           (V "x" :+ IntC 1)
+          UnspecifiedType
       )
     testExprParser
       "fun x -> x+y"
@@ -165,6 +174,7 @@ parserSpec = do
           )
           (V "x" :+ V "y")
           (V "x" :+ V "y")
+          UnspecifiedType
       )
     testExprParser
       "[a;3;b;]"
@@ -173,6 +183,7 @@ parserSpec = do
             IntC 3,
             V "b"
           ]
+          UnspecifiedType
       )
     testExprParser
       "[|a;3;b;|]"
@@ -181,6 +192,7 @@ parserSpec = do
             IntC 3,
             V "b"
           ]
+          UnspecifiedType
       )
   describe "parseStatement" $ do
     it "hoge ;; huga ;; " $
