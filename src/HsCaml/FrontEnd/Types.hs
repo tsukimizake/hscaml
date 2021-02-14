@@ -6,22 +6,11 @@
 
 module HsCaml.FrontEnd.Types where
 
-import Data.String
 import Data.Text
 import Deriving.Show.Simple
 import GHC.Generics (Generic)
-import TextShow
 
-type Name = Text
-
-newtype Sym = Sym
-  { name :: Name
-  }
-  deriving (Eq, Ord, Generic, TextShow)
-  deriving (Show) via (WrapSimple Sym)
-
-instance IsString Sym where
-  fromString = Sym . pack
+type Sym = Text
 
 data Value
   = IntVal Int
@@ -51,10 +40,10 @@ data CompileError
   | SemanticsError Text
   deriving (Show)
 
-data DataCnstr = DataCnstr Name [TypeExpr]
+data DataCnstr = DataCnstr Sym [TypeExpr]
   deriving (Show, Eq, Ord)
 
-data TypeDecl = TypeDecl Name [DataCnstr]
+data TypeDecl = TypeDecl Sym [DataCnstr]
   deriving (Show, Eq)
 
 newtype TypeEnv = TypeEnv [TypeDecl]
@@ -170,7 +159,7 @@ pattern BoolC :: Bool -> Expr
 pattern BoolC x = Constant (BoolVal x) UnspecifiedType
 
 pattern V :: Text -> Expr
-pattern V x = Var (Sym x) UnspecifiedType
+pattern V x = Var x UnspecifiedType
 
 pattern (:*) :: Expr -> Expr -> Expr
 pattern l :* r = InfixOpExpr l Mul r UnspecifiedType
@@ -227,7 +216,7 @@ pattern TBoolC :: Bool -> Expr
 pattern TBoolC x = Constant (BoolVal x) (TypeAtom "bool")
 
 tIntVar :: Text -> Expr
-tIntVar s = Var (Sym s) (TypeAtom "int")
+tIntVar s = Var s (TypeAtom "int")
 
 pattern (:*:) :: Expr -> Expr -> Expr
 pattern l :*: r = InfixOpExpr l Mul r (TypeAtom "int")

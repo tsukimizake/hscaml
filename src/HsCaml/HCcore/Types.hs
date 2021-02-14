@@ -5,7 +5,7 @@
 module HsCaml.HCcore.Types where
 
 import Data.Text
-import HsCaml.FrontEnd.Types hiding (Expr, TExpr)
+import HsCaml.FrontEnd.Types hiding (Expr)
 
 data CRValue
   = CRConst Value
@@ -25,9 +25,9 @@ fromLValue (CLVar v _) = CRVar v
 
 newtype DCId = DCId Int deriving (Show, Eq, Ord)
 
-newtype CType = CType Name deriving (Show, Eq, Ord)
+newtype CType = CType Sym deriving (Show, Eq, Ord)
 
-data CDataCnstr = CDataCnstr Name [TypeExpr] DCId deriving (Show)
+data CDataCnstr = CDataCnstr Sym [TypeExpr] DCId deriving (Show)
 
 data CExpr
   = CMultiExpr {bodies :: [CExpr], typeExpr :: TypeExpr}

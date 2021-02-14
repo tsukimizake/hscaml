@@ -61,15 +61,14 @@ makeCTypeDecl (TypeDecl name xs) = CTypeDecl (CType name) (setDCId 0 xs)
 
 genSym :: T.Text -> ToHCcoreM Sym
 genSym s = do
-  sym <- liftEff (Proxy :: Proxy "gs") $ GS.genSym s
-  pure $ Sym sym
+  liftEff (Proxy :: Proxy "gs") $ GS.genSym s
 
 genSymLVar :: TypeExpr -> ToHCcoreM CLValue
 genSymLVar t = do
   sym <- liftEff (Proxy :: Proxy "gs") $ GS.genSym ""
   pure $ wrap sym
   where
-    wrap x = CLVar (Sym x) t
+    wrap x = CLVar x t
 
 -- getLastSym :: CExprWithRet -> CLValue
 -- getLastSym (CMultiExpr [x]) = x ^. ret_
@@ -236,12 +235,12 @@ matchCaseToHCcoreM x ret (pat, body) t = do
       pure (pat, body')
     OrPattern pt l r ->
       pure (pat, body')
-    ConstrPattern pt (Sym cnstrName) rest _ -> do
+    ConstrPattern pt cnstrSym rest _ -> do
       typeEnv <- askEff (Proxy :: Proxy "te")
-      dcId <- getDataCnstrId typeEnv cnstrName
+      dcId <- getDataCnstrId typeEnv cnstrSym
       pure (pat{dcId = Just dcId}, body')
 
-getDataCnstrId :: TypeEnv -> Name -> ToHCcoreM Int
+getDataCnstrId :: TypeEnv -> Sym -> ToHCcoreM Int
 getDataCnstrId (TypeEnv tds) name = do
   let resl = mapMaybe (getDataCnstrIdImpl 0 name) tds
   case length resl of
@@ -249,7 +248,7 @@ getDataCnstrId (TypeEnv tds) name = do
     1 -> pure . fromJust . listToMaybe $ resl
     n -> throwSemanticsError $ " data constructor " <> name <> " found " <> showt n <> " times in type " <> name
   where
-    getDataCnstrIdImpl :: Int -> Name -> TypeDecl -> Maybe Int
+    getDataCnstrIdImpl :: Int -> Sym -> TypeDecl -> Maybe Int
     getDataCnstrIdImpl n nameToSearch (TypeDecl name []) = Nothing
     getDataCnstrIdImpl n nameToSearch (TypeDecl name (x : xs)) =
       if name == nameToSearch

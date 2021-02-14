@@ -98,7 +98,7 @@ Expr :: {Expr}
   | "let" "rec" LetPattern "=" Expr {LetRec $3 $5 UnspecifiedType}
   | "let" LetPattern "=" Expr "in" Expr {LetIn $2 $4 $6 UnspecifiedType}
   | "let" "rec" LetPattern "=" Expr "in" Expr {LetRecIn $3 $5 $7 UnspecifiedType}
-  | "fun" SymList "->" Expr {LetIn (FuncLetPattern UnspecifiedType (Sym (T.pack "fun")) (zip $2 (repeat UnspecifiedType))) $4 $4 UnspecifiedType}
+  | "fun" SymList "->" Expr {LetIn (FuncLetPattern UnspecifiedType (T.pack "fun") (zip $2 (repeat UnspecifiedType))) $4 $4 UnspecifiedType}
   | Expr "*" Expr {$1 :* $3}
   | Expr "/" Expr {$1 :/ $3}
   | Expr "*." Expr {$1 :*. $3}
@@ -173,17 +173,17 @@ DataCnstrArg
   | TypeApplication {$1}
   | DataCnstrArg "->" DataCnstrArg {$1 ::-> $3}
 
-DownvarList :: {[Name]}
+DownvarList :: {[Sym]}
   : downvar DownvarList  {$1 : $2}
   | downvar {[$1]}
 
 
 SymList :: {[Sym]}
-  : DownvarList {fmap Sym $1}
+  : DownvarList {$1}
 
 Pattern :: {Pattern}
   : Constant {ConstantPattern UnspecifiedType $1}
-  | downvar {VarPattern UnspecifiedType (Sym $1)}
+  | downvar {VarPattern UnspecifiedType $1}
   | "(" Pattern ":" TypeExpr ")" {let theType = $4
                                   in ParenPattern theType ($2{ mpatType = theType })}
   | "(" Pattern ")" {ParenPattern UnspecifiedType $2}
@@ -196,7 +196,7 @@ PatternList :: {[Pattern]}
 
 LetPattern :: {LetPattern}
   : Pattern {LetPattern UnspecifiedType $1}
-  | downvar SymList {FuncLetPattern UnspecifiedType (Sym $1) (zip $2 (repeat UnspecifiedType))}
+  | downvar SymList {FuncLetPattern UnspecifiedType $1 (zip $2 (repeat UnspecifiedType))}
 
 
 

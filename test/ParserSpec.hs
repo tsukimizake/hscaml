@@ -28,7 +28,7 @@ parserSpec = do
 
     testExprParser "let eu = 4" (Let (LetPattern UnspecifiedType (VarPattern UnspecifiedType "eu")) (Constant (IntVal 4) UnspecifiedType) UnspecifiedType)
     testExprParser "let (eu:'a) = 4" (Let (LetPattern UnspecifiedType (ParenPattern (TypeVar "'a" 0) (VarPattern (TypeVar "'a" 0) "eu"))) (IntC 4) UnspecifiedType)
-    testExprParser "let rec f x = x*x*x" (LetRec (FuncLetPattern UnspecifiedType "f" [("x", UnspecifiedType)]) ((V "x" :* V "x") :* V "x") UnspecifiedType)
+    testExprParser "let rec f x = x*x*x" (LetRec (FuncLetPattern UnspecifiedType "f" [("x", UnspecifiedType)]) ((V "x" :* V "x" :* V "x")) UnspecifiedType)
     testExprParser "let (eu:int) = 4" (Let (LetPattern UnspecifiedType (ParenPattern ocamlInt (VarPattern ocamlInt "eu"))) (Constant (IntVal 4) UnspecifiedType) UnspecifiedType)
     testExprParser "let rec eu = 4" (LetRec (LetPattern UnspecifiedType (VarPattern UnspecifiedType "eu")) (Constant (IntVal 4) UnspecifiedType) UnspecifiedType)
     testExprParser
@@ -54,7 +54,7 @@ parserSpec = do
     testExprParser
       "let f a b = a = b"
       ( Let
-          (FuncLetPattern UnspecifiedType "f" [(Sym "a", UnspecifiedType), (Sym "b", UnspecifiedType)])
+          (FuncLetPattern UnspecifiedType "f" [("a", UnspecifiedType), ("b", UnspecifiedType)])
           ((V "a") :== (V "b"))
           UnspecifiedType
       )
@@ -100,7 +100,7 @@ parserSpec = do
       )
     testExprParser
       "let main = print_int 42"
-      (Let (LetPattern UnspecifiedType (VarPattern UnspecifiedType (Sym "main"))) (FunApply (V "print_int") [(IntC 42)] UnspecifiedType) UnspecifiedType)
+      (Let (LetPattern UnspecifiedType (VarPattern UnspecifiedType "main")) (FunApply (V "print_int") [(IntC 42)] UnspecifiedType) UnspecifiedType)
     testExprParser
       "match x with |1 -> true |2 ->false"
       ( Match
@@ -115,8 +115,8 @@ parserSpec = do
       ( LetIn
           ( FuncLetPattern
               UnspecifiedType
-              (Sym "f")
-              [(Sym "x", UnspecifiedType), (Sym "y", UnspecifiedType)]
+              "f"
+              [("x", UnspecifiedType), ("y", UnspecifiedType)]
           )
           ((V "x") :* (V "y"))
           (V "f")
@@ -127,8 +127,8 @@ parserSpec = do
       ( LetIn
           ( FuncLetPattern
               UnspecifiedType
-              (Sym "f")
-              [(Sym "x", UnspecifiedType), (Sym "y", UnspecifiedType)]
+              "f"
+              [("x", UnspecifiedType), ("y", UnspecifiedType)]
           )
           ((V "x") :* (V "y"))
           ( MultiExpr
@@ -145,8 +145,8 @@ parserSpec = do
       ( LetIn
           ( FuncLetPattern
               UnspecifiedType
-              (Sym "f")
-              [(Sym "g", UnspecifiedType), (Sym "h", UnspecifiedType), (Sym "x", UnspecifiedType)]
+              "f"
+              [("g", UnspecifiedType), ("h", UnspecifiedType), ("x", UnspecifiedType)]
           )
           (FunApply (Paren (FunApply (V "f") [(V "g")] UnspecifiedType) UnspecifiedType) [(Paren (FunApply (V "h") [(V "x")] UnspecifiedType) UnspecifiedType)] UnspecifiedType)
           (V "g")
@@ -157,8 +157,8 @@ parserSpec = do
       ( LetIn
           ( FuncLetPattern
               UnspecifiedType
-              (Sym "fun")
-              [(Sym "x", UnspecifiedType)]
+              "fun"
+              [("x", UnspecifiedType)]
           )
           (V "x" :+ IntC 1)
           (V "x" :+ IntC 1)
@@ -169,8 +169,8 @@ parserSpec = do
       ( LetIn
           ( FuncLetPattern
               UnspecifiedType
-              (Sym "fun")
-              [(Sym "x", UnspecifiedType)]
+              "fun"
+              [("x", UnspecifiedType)]
           )
           (V "x" :+ V "y")
           (V "x" :+ V "y")

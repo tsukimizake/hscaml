@@ -102,7 +102,7 @@ typeCheckSpec = do
           ( FuncLetPattern
               (ocamlInt ::-> ocamlInt ::-> ocamlInt)
               "_f_gen_0"
-              [(Sym "_x_gen_0", ocamlInt), (Sym "_y_gen_0", ocamlInt)]
+              [("_x_gen_0", ocamlInt), ("_y_gen_0", ocamlInt)]
           )
           (Var "_x_gen_0" ocamlInt :*: Var "_y_gen_0" ocamlInt)
           (Var "_f_gen_0" (ocamlInt ::-> ocamlInt ::-> ocamlInt))
@@ -132,7 +132,7 @@ typeCheckSpec = do
           ( FuncLetPattern
               (ocamlBool ::-> TypeVar "_4" 0 ::-> TypeVar "_4" 0 ::-> TypeVar "_4" 0)
               "_f_gen_0"
-              [(Sym "_x_gen_0", ocamlBool), (Sym "_y_gen_0", TypeVar "_4" 0), (Sym "_z_gen_0", TypeVar "_4" 0)]
+              [("_x_gen_0", ocamlBool), ("_y_gen_0", TypeVar "_4" 0), ("_z_gen_0", TypeVar "_4" 0)]
           )
           ( IfThenElse
               (Var "_x_gen_0" ocamlBool)
@@ -148,7 +148,7 @@ typeCheckSpec = do
           ( FuncLetPattern
               (TypeVar "_0" 0 ::-> TypeVar "_0" 0)
               "_f_gen_0"
-              [(Sym "_x_gen_0", TypeVar "_0" 0)]
+              [("_x_gen_0", TypeVar "_0" 0)]
           )
           (Var "_x_gen_0" (TypeVar "_0" 0))
           ( MultiExpr
