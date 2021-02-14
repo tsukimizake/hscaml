@@ -3,15 +3,11 @@
 
 module TypeCheckSpec where
 
-import Control.Monad.State
-import Data.Set as S
-import Debug.Trace
 import HsCaml.Common.Gensym as GS
 import HsCaml.FrontEnd.OCamlType
 import HsCaml.FrontEnd.Types
 import HsCaml.Parser.Parser
 import HsCaml.TypeChecker.RenameSymsByScope
-import HsCaml.TypeChecker.TypeCheckUtil
 import HsCaml.TypeChecker.TypeChecker
 import Test.Hspec
 
@@ -86,7 +82,7 @@ typeCheckSpec = do
               [(ConstantPattern UnspecifiedType (IntVal 42), (Constant (BoolVal True) UnspecifiedType))]
               UnspecifiedType
           )
-          ocamlBool
+          UnspecifiedType
       )
   describe "typecheck" $ do
     testTypeCheckExpr
