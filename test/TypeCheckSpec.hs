@@ -6,6 +6,7 @@ module TypeCheckSpec where
 import Control.Monad.State
 import Data.Set as S
 import Debug.Trace
+import HsCaml.Common.Gensym as GS
 import HsCaml.FrontEnd.OCamlType
 import HsCaml.FrontEnd.Types
 import HsCaml.Parser.Parser
@@ -16,7 +17,7 @@ import Test.Hspec
 
 testRSBS :: String -> Expr -> Spec
 testRSBS src ast = it src $ do
-  let res = renameSymsByScope . parseExpr $ src
+  let res = renameSymsByScope GS.initialGensymState . parseExpr $ src
   case res of
     Left err -> error $ show err
     Right res' -> res' `shouldBe` ast

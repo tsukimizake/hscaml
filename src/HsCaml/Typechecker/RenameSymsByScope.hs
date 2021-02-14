@@ -30,6 +30,7 @@ pushAndRenameSym s = do
   stack <- liftState $ use GS.renameStack
   let xs = fromMaybe [] (stack ^. at s) :: [Name]
   liftState $ GS.renameStack .= (stack & at s ?~ (s' : xs))
+
   pure s'
 
 popRenameStack :: Name -> RenameSymsEff ()
@@ -51,18 +52,18 @@ unwrapSym s = s.name
 -- in let x1 = 1
 -- in x1
 
-renameSymsByScope :: Expr -> Either CompileError Expr
-renameSymsByScope expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff GS.initialGensymState $ impl expr
+renameSymsByScope :: GS.GensymState -> Expr -> Either CompileError Expr
+renameSymsByScope initialState expr = E.leaveEff . E.runEitherEff . flip E.evalStateEff initialState $ impl expr
   where
     impl :: Expr -> RenameSymsEff Expr
     impl (Var (Sym s) _) = do
       stack <- liftState $ use GS.renameStack
       let got = stack ^. at s
       case got of
-        Nothing -> E.throwEff (Proxy @"err") . SemanticsError $ T.intercalate " " ["Symbol", s, "couldn't be found"]
+        Nothing -> E.throwEff (Proxy @"err") . SemanticsError $ T.intercalate " " ["Symbol", s, "not found"]
         Just xs ->
           case length xs of
-            0 -> E.throwEff (Proxy @"err") . SemanticsError $ T.intercalate " " ["Symbol", s, "couldn't be found"]
+            0 -> E.throwEff (Proxy @"err") . SemanticsError $ T.intercalate " " ["Symbol", s, "not found"]
             _ -> pure $ V (head xs)
     impl x@(IntC _) = pure $ x
     impl (Let (LetPattern t1 (VarPattern t (Sym s))) e t2) = do

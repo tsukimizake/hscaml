@@ -1,10 +1,12 @@
 {-# OPTIONS_GHC -F -pgmF=record-dot-preprocessor #-}
+{-# OPTIONS_GHC -Wno-unused-do-bind #-}
 
 module HsCaml.TypeChecker.TypeCheckUtil where
 
 import Control.Monad.Identity
 import Data.Bifunctor
 import Data.Text
+import Debug.Trace
 import HsCaml.FrontEnd.Types as Types
 
 traverseExpr :: (Monad m) => (Expr -> m Expr) -> Expr -> m Expr
@@ -12,25 +14,25 @@ traverseExpr f x@(Constant _ _) = f x
 traverseExpr f x@(Var _ _) = f x
 traverseExpr f (Paren e t) = do
   e' <- traverseExpr f e
-  f $ Paren e' t
+  pure $ Paren e' t
 traverseExpr f (InfixOpExpr e iop g t) = do
   e' <- traverseExpr f e
   g' <- traverseExpr f g
-  f $ InfixOpExpr e' iop g' t
+  pure $ InfixOpExpr e' iop g' t
 traverseExpr f (BegEnd e t) = do
   e' <- traverseExpr f e
-  f $ BegEnd e' t
+  pure $ BegEnd e' t
 traverseExpr f (MultiExpr e t) = do
   e' <- mapM f e
-  f $ MultiExpr e' t
+  pure $ MultiExpr e' t
 traverseExpr f (Constr e t) = do
   e' <- traverseExpr f e
-  f $ Constr e' t
+  pure $ Constr e' t
 traverseExpr f (IfThenElse e1 e2 e3 t) = do
   e1' <- traverseExpr f e1
   e2' <- traverseExpr f e2
   e3' <- traverseExpr f e3
-  f $ IfThenElse e1' e2' e3' t
+  pure $ IfThenElse e1' e2' e3' t
 traverseExpr f (Match e1 e2 t) = do
   e1' <- traverseExpr f e1
   e2' <-
@@ -40,35 +42,35 @@ traverseExpr f (Match e1 e2 t) = do
           pure (x, y')
       )
       e2
-  f $ Match e1' e2' t
+  pure $ Match e1' e2' t
 traverseExpr f (While e1 e2 t) = do
   e1' <- traverseExpr f e1
   e2' <- traverseExpr f e2
-  f $ While e1' e2' t
+  pure $ While e1' e2' t
 traverseExpr f (FunApply e1 e2 t) = do
   e1' <- traverseExpr f e1
   e2' <- mapM f e2
-  f $ FunApply e1' e2' t
+  pure $ FunApply e1' e2' t
 traverseExpr f (Let e1 e2 t) = do
   e2' <- traverseExpr f e2
-  f $ Let e1 e2' t
+  pure $ Let e1 e2' t
 traverseExpr f (LetRec e1 e2 t) = do
   e2' <- traverseExpr f e2
-  f $ LetRec e1 e2' t
+  pure $ LetRec e1 e2' t
 traverseExpr f (LetIn e1 e2 e3 t) = do
   e2' <- traverseExpr f e2
   e3' <- traverseExpr f e3
-  f $ LetIn e1 e2' e3' t
+  pure $ LetIn e1 e2' e3' t
 traverseExpr f (LetRecIn e1 e2 e3 t) = do
   e2' <- traverseExpr f e2
   e3' <- traverseExpr f e3
-  f $ LetRecIn e1 e2' e3' t
+  pure $ LetRecIn e1 e2' e3' t
 traverseExpr f (Types.List xs t) = do
   xs' <- mapM (traverseExpr f) xs
-  f $ Types.List xs' t
+  pure $ Types.List xs' t
 traverseExpr f (Array xs t) = do
   xs' <- mapM (traverseExpr f) xs
-  f $ Array xs' t
+  pure $ Array xs' t
 
 traverseTypeExpr :: (Monad m) => (TypeExpr -> m TypeExpr) -> (TypeExpr -> m TypeExpr)
 traverseTypeExpr f (l ::-> r) = do
